@@ -1,0 +1,4 @@
+# ملفات داخلية لا تُرفع للعميل
+*.mp4
+صور/
+frontend-ui-engineering/

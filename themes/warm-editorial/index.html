@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>مؤسسة أبرار الخير | عطاء يصنع الحياة - غزة فلسطين</title>
+<meta name="description" content="مؤسسة أبرار الخير - فلسطين قطاع غزة - كفالة الأيتام" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { plex: ['"IBM Plex Sans Arabic"','Tahoma','sans-serif'], kufi: ['"Noto Kufi Arabic"','"IBM Plex Sans Arabic"','sans-serif'], ruqaa: ['"Aref Ruqaa"','serif'], amiri: ['Amiri','serif'] },
+      colors: {
+        pine: {50:'#eef4ef',100:'#d8e5d8',200:'#b3cbb4',300:'#84a988',400:'#557f5c',500:'#2f6440',600:'#1a4f31',700:'#0E3A2D',800:'#0c3128',900:'#081f19'},
+        gold: {DEFAULT:'#B98A2F',light:'#E4C878',dark:'#8A6420'},
+        cream: '#FAFAF7',
+        ink: '#132019',
+        clay: '#C4552B'
+      },
+      boxShadow: { soft:'0 20px 60px -20px rgba(11,61,46,.35)', card:'0 10px 40px -12px rgba(0,0,0,.18)' }
+    }
+  }
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Noto+Kufi+Arabic:wght@500;600;700;800&family=Aref+Ruqaa:wght@400;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="font-plex bg-cream text-ink antialiased">
+
+<!-- شريط علوي -->
+<div class="bg-pine-900 text-white/90 text-xs sm:text-sm py-2 px-4 text-center tracking-wide">
+  <span class="inline-flex items-center gap-2">🇵🇸 فلسطين – قطاع غزة &nbsp;•&nbsp; معاً نصنع الأمل للأيتام <span class="live-dot"></span> <span id="topClock" class="opacity-70"></span></span>
+</div>
+
+<!-- ================= الهيدر: الشعار في الوسط ================= -->
+<header id="siteHeader" class="sticky top-0 z-50 backdrop-blur-xl bg-cream/85 border-b border-pine-700/10 transition-all">
+  <div class="max-w-7xl mx-auto px-4 py-3 grid grid-cols-3 items-center gap-2">
+    <!-- يمين (بداية RTL): تنقل -->
+    <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-pine-800">
+      <a href="#hero" class="nav-link">الرئيسية</a>
+      <a href="#gallery" class="nav-link">معرض الكفالة</a>
+      <a href="#kafaala" class="nav-link">كفالة يتيم</a>
+      <a href="#contribute" class="nav-link">ساهم معنا</a>
+    </nav>
+    <button id="mobileMenuBtn" class="md:hidden justify-self-start p-2 rounded-xl border border-pine-700/15" aria-label="القائمة">☰</button>
+
+    <!-- الوسط: الشعار -->
+    <a href="#hero" class="justify-self-center flex flex-col items-center gap-1 group">
+      <span class="logo-wrap">
+        <img src="assets/logo.png" alt="شعار مؤسسة أبرار الخير للإغاثة الإنسانية" class="logo-img">
+      </span>
+    </a>
+
+    <!-- يسار: الدخول -->
+    <div class="justify-self-end flex items-center gap-2">
+      <span id="authStateLabel" class="hidden lg:inline text-xs text-pine-800/70 font-semibold"></span>
+      <button onclick="openLogin('orphan')" class="btn-ghost hidden sm:inline-flex">دخول اليتيم</button>
+      <button onclick="openLogin('admin')" class="btn-solid">دخول المدير</button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="md:hidden hidden border-t border-pine-700/10 bg-cream px-6 py-4 flex flex-col gap-3 font-bold text-pine-800">
+    <a href="#hero">الرئيسية</a><a href="#gallery">معرض الكفالة</a><a href="#kafaala">كفالة يتيم</a><a href="#contribute">ساهم معنا</a>
+    <button onclick="openLogin('orphan')" class="btn-ghost w-full">دخول اليتيم</button>
+  </div>
+</header>
+
+<!-- ================= Views ================= -->
+<main id="view-home">
+<!-- ================= الهيرو — ستايل تحريري (Text Reveal + Shimmer + إطار فيلم) ================= -->
+<section id="hero" class="hero-paper">
+  <div class="bg-dots"></div>
+  <div class="max-w-3xl mx-auto px-5 pt-6 pb-2 text-center relative z-10 flex flex-col items-center justify-center min-h-[30vh]" data-depth="-8">
+      <h1 id="heroTitle" class="hero-title">عطاءٌ <em class="shimmer-word">يصنع الحياة</em> في قلب غزة</h1>
+      <p class="hero-verse">«وَيُطْعِمُونَ الطَّعَامَ عَلَىٰ حُبِّهِ مِسْكِينًا وَيَتِيمًا وَأَسِيرًا»</p>
+      <p class="hero-sub">نكفل أيتام قطاع غزة كفالة شاملة: معيشة وتعليم ورعاية صحية — وتبرعك موثّق بالصور والتقارير، من يدك إلى يد اليتيم مباشرة.</p>
+  </div>
+  <div class="tilt-band" id="tiltBand" data-depth="10"><div class="tilt-stage" id="tiltStage"></div></div>
+  <div class="max-w-3xl mx-auto px-5 pb-10 text-center relative z-10">
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <a href="#kafaala" class="btn-shimmer" data-magnet="0.3"><span>تسجيل يتيم للكفالة</span></a>
+        <a href="#contribute" class="btn-hard" data-magnet="0.3">المساهمة عبر واتساب ←</a>
+      </div>
+    <div class="stat-bold-row reveal" style="max-width:300px;margin:18px auto 0">
+      <div class="stat-single fx-spot" data-tilt="6"><b><span class="counter" data-target="250">0</span></b><span>كفالة سارية لأيتامنا</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- جدار العطاء -->
+<div class="donor-wall" dir="ltr"><span class="wall-label">مشاريعنا</span><div class="marquee-track" id="marqueeTrack"></div></div>
+
+<!-- ================= معرض الكفالة: سلايدر + موجات parallax ================= -->
+<section id="gallery" class="g-section">
+  <div class="g-waves" aria-hidden="true">
+    <div class="g-blob b1"></div><div class="g-blob b2"></div>
+    <div class="wlayer d3"><svg viewBox="0 0 2880 220" preserveAspectRatio="none"><path d="M0,130 C240,90 480,170 720,130 C960,90 1200,170 1440,130 C1680,90 1920,170 2160,130 C2400,90 2640,170 2880,130 L2880,220 L0,220 Z"/></svg></div>
+    <div class="wlayer d2"><svg viewBox="0 0 2880 220" preserveAspectRatio="none"><path d="M0,110 C240,60 480,160 720,110 C960,60 1200,160 1440,110 C1680,60 1920,160 2160,110 C2400,60 2640,160 2880,110 L2880,220 L0,220 Z"/></svg></div>
+    <div class="wlayer d1"><svg viewBox="0 0 2880 220" preserveAspectRatio="none"><path d="M0,120 C240,170 480,70 720,120 C960,170 1200,70 1440,120 C1680,170 1920,70 2160,120 C2400,170 2640,70 2880,120 L2880,220 L0,220 Z"/></svg></div>
+  </div>
+  <div class="max-w-6xl mx-auto px-5 relative z-10">
+    <div class="text-center mb-8 reveal">
+      <h2 class="sec-title">من الميدان <span class="ruqaa-note">بعدسة الكفالة</span></h2>
+      <p class="sec-sub">لقطات من حياة أطفالنا المكفولين وأنشطتهم — حرّك الماوس فوق القسم وشاهد الطبقات تتحرك بعمق.</p>
+    </div>
+    <div class="g-tabs" id="gTabs" style="display:none"></div>
+    <div class="g-shell reveal" id="gShell" data-depth="8">
+      <div class="g-viewport" id="gViewport">
+        <div class="g-track" id="gTrack"></div>
+        <button class="g-arrow right" onclick="gMove(1)" aria-label="التالي">‹</button>
+        <button class="g-arrow left" onclick="gMove(-1)" aria-label="السابق">›</button>
+        <div class="g-cap"><b id="gCapTitle"></b><span id="gCapSub"></span></div>
+        <div class="g-count"><span id="gNum">1</span> / <span id="gTotal"></span></div>
+      </div>
+      <div class="g-bottom">
+        <div class="g-thumbs" id="gThumbs"></div>
+        <div class="g-progress"><span id="gBar"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= المساهمة عبر واتساب ================= -->
+<section id="contribute" class="py-16 sm:py-24 relative overflow-hidden">
+  <div class="max-w-3xl mx-auto px-5 relative z-10 text-center">
+    <div class="text-white reveal">
+      <h2 class="text-3xl sm:text-5xl font-black mt-4 leading-snug" style="font-family:'Noto Kufi Arabic',sans-serif">صدقتك اليوم ..<br><span class="text-gold-light">حياةٌ لأسرة غداً</span></h2>
+      <p class="text-white/70 font-semibold mt-4 leading-loose">تواصل معنا مباشرة عبر واتساب للتبرع أو الكفالة الشهرية أو التبرع العيني. فريقنا يرد خلال دقائق، ويوثّق تبرعك بالصور والتقارير.</p>
+      <ul class="mt-6 space-y-3 text-sm font-bold inline-flex flex-col">
+        <li class="flex items-center gap-3"><span class="tick">✓</span> كفالة يتيم شهرية — 100 شيكل فقط</li>
+        <li class="flex items-center gap-3"><span class="tick">✓</span> كفالة سنوية كاملة — 1200 شيكل</li>
+        <li class="flex items-center gap-3"><span class="tick">✓</span> مستلزمات مدرسية وعلاج للمكفولين</li>
+      </ul>
+      <div class="flex flex-wrap justify-center gap-3 mt-8">
+        <a id="waMainBtn" href="https://wa.me/970597364752?text=السلام عليكم، أريد كفالة يتيم عبر مؤسسة أبرار الخير" target="_blank" class="btn-wa"> <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.4-.7-2.9-1.2-4.7-4.1-4.9-4.3-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.3.6-.6.8-.4 1.1.7 1.2 1.6 2 2.8 2.6.3.2.5 0 .7-.2l.7-.8c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.4 0 .1 0 .7-.5 1.3z"/></svg> تواصل عبر واتساب WA.ME</a>
+        <button onclick="copyWaNumber()" class="btn-glass-light">نسخ الرقم</button>
+      </div>
+      <p class="text-white/40 text-xs mt-3 font-semibold">رقم المؤسسة واتساب: <bdi dir="ltr">+970 597 364 752</bdi></p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= التسجيل في كفالة يتيم ================= -->
+<section id="kafaala" class="py-20 sm:py-28">
+  <div class="max-w-4xl mx-auto px-5">
+    <div class="text-center mb-8 reveal">
+      <h2 class="sec-title">سجّل يتيماً <span class="ruqaa-note">واكفل أجراً عظيماً</span></h2>
+      <p class="text-pine-800/60 font-semibold mt-3">اضغط الزر لينسدل نموذج التسجيل. بعد الإرسال يُنشأ <b>حساب لليتيم تلقائياً</b>: الدخول برقم الهوية + تاريخ الميلاد ككلمة مرور.</p>
+    </div>
+
+    <div class="reveal text-center mb-6">
+      <button id="toggleFormBtn" onclick="toggleKafaalaForm()" class="btn-accord">
+        <span id="toggleFormLabel">+ تسجيل يتيم جديد في الكفالة</span>
+        <span id="toggleFormIcon" class="accord-icon">↓</span>
+      </button>
+      <div class="flex justify-center gap-6 mt-4 text-sm font-bold text-pine-800/60">
+        <span>📝 14 حقلاً مطلوباً</span><span>⚡ حساب فوري</span><span>🔒 بيانات محمية</span>
+      </div>
+    </div>
+
+    <div id="kafaalaWrap" class="accord-body">
+      <form id="kafaalaForm" class="form-card fx-spot" data-tilt="2" onsubmit="return submitKafaala(event)" novalidate>
+        <div class="form-steps"><span class="active">1 بيانات اليتيم</span><span>2 بيانات الوصي</span><span>3 بيانات الأب والسكن</span><span>4 التواصل والصحة</span></div>
+
+        <h3 class="form-sec">① بيانات اليتيم</h3>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="field"><label>1- اسم اليتيم رباعي *</label><input name="orphan_name" required placeholder="مثال: أحمد محمد خالد المصري"></div>
+          <div class="field"><label>2- رقم هوية اليتيم * <small>(9 أرقام — سيكون اسم الدخول)</small></label><input name="orphan_id" required inputmode="numeric" pattern="[0-9]{9}" maxlength="9" placeholder="مثال: 408123456" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+          <div class="field"><label>3- تاريخ ميلاد اليتيم * <small>(كلمة المرور للدخول)</small></label><input name="orphan_birth" type="date" required max="2026-10-11"></div>
+          <div class="field"><label>جنس اليتيم *</label><select name="orphan_gender" required><option value="">اختر…</option><option>ذكر</option><option>أنثى</option></select></div>
+        </div>
+
+        <h3 class="form-sec">② بيانات الوصي</h3>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="field"><label>4- اسم الوصي رباعي *</label><input name="guardian_name" required placeholder="مثال: فاطمة أحمد حسن المصري"></div>
+          <div class="field"><label>5- رقم هوية الوصي *</label><input name="guardian_id" required inputmode="numeric" pattern="[0-9]{9}" maxlength="9" placeholder="9 أرقام" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+          <div class="field"><label>6- تاريخ ميلاد الوصي *</label><input name="guardian_birth" type="date" required></div>
+          <div class="field"><label>صلة القرابة *</label><select name="guardian_rel" required><option value="">اختر…</option><option>الأم</option><option>الجد / الجدة</option><option>العم / العمة</option><option>الخال / الخالة</option><option>أخ / أخت</option><option>أخرى</option></select></div>
+        </div>
+
+        <h3 class="form-sec">③ بيانات الأب والسكن</h3>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="field"><label>7- اسم الأب *</label><input name="father_name" required placeholder="اسم الأب المتوفى"></div>
+          <div class="field"><label>8- رقم هوية الأب *</label><input name="father_id" required inputmode="numeric" maxlength="9" placeholder="9 أرقام" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+          <div class="field"><label>9- تاريخ الوفاة *</label><input name="death_date" type="date" required></div>
+          <div class="field"><label>سبب الوفاة</label><select name="death_cause"><option>استشهاد - حرب</option><option>مرض</option><option>حادث</option><option>أخرى</option></select></div>
+          <div class="field"><label>10- عنوان السكن الأصلي *</label><input name="original_address" required placeholder="مثال: غزة - الشجاعية - شارع بغداد"></div>
+          <div class="field"><label>11- عنوان النزوح الحالي *</label><input name="displacement_address" required placeholder="مثال: دير البلح - مخيم ..."></div>
+        </div>
+
+        <h3 class="form-sec">④ التواصل والحالة الصحية</h3>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="field"><label>12- رقم الجوال الأساسي * <small>(05XXXXXXXX)</small></label><input name="phone_primary" required inputmode="numeric" pattern="05[0-9]{8}" maxlength="10" placeholder="0599123456" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+          <div class="field"><label>13- رقم جوال بديل</label><input name="phone_alt" inputmode="numeric" maxlength="10" placeholder="اختياري" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+          <div class="field sm:col-span-2"><label>14- الحالة الصحية للطفل اليتيم *</label>
+            <select name="health_status" required onchange="document.getElementById('healthNote').style.display = this.value!=='سليم (لا أمراض)' ? 'block':'none'">
+              <option value="">اختر…</option><option>سليم (لا أمراض)</option><option>مرض مزمن (سكري / ربو / قلب ...)</option><option>إعاقة حركية</option><option>إعاقة سمعية / بصرية</option><option>سوء تغذية</option><option>إصابة حرب</option><option>أخرى</option>
+            </select>
+            <textarea id="healthNote" name="health_note" rows="2" style="display:none" class="mt-2" placeholder="اشرح الحالة الصحية بالتفصيل + الأدوية المطلوبة..."></textarea>
+          </div>
+        </div>
+
+        <label class="agree"><input type="checkbox" required> أقر بأن جميع البيانات صحيحة، وأوافق على مراجعة المؤسسة للطلب والتواصل معي عبر الجوال.</label>
+        <button class="btn-submit" type="submit" id="submitBtn">إرسال طلب الكفالة ←</button>
+        <p class="text-center text-xs text-pine-800/50 font-semibold mt-3">بعد الإرسال: رقم الهوية = اسم المستخدم &nbsp;•&nbsp; تاريخ الميلاد = كلمة المرور</p>
+      </form>
+    </div>
+
+    <div id="kafaalaSuccess" class="hidden success-card">
+      <div class="text-5xl">🎉</div>
+      <h3 class="text-2xl font-black text-pine-800">تم استلام طلبك بنجاح!</h3>
+      <p class="font-semibold text-pine-800/70">حالة الطلب الآن: <b class="status-pending">قيد المراجعة ⏳</b></p>
+      <div class="creds"><div><span>اسم الدخول (رقم الهوية)</span><b id="sId" dir="ltr"></b></div><div><span>كلمة المرور (تاريخ الميلاد)</span><b id="sPass" dir="ltr"></b></div></div>
+      <div class="flex flex-wrap justify-center gap-3 mt-4">
+        <button onclick="openLogin('orphan')" class="btn-solid">دخول حساب اليتيم ←</button>
+        <button onclick="document.getElementById('kafaalaSuccess').classList.add('hidden')" class="btn-ghost">تسجيل طلب آخر</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ================= لوحة المدير ================= -->
+<main id="view-admin" class="hidden min-h-screen bg-[#F2EFE6]">
+  <div class="max-w-7xl mx-auto px-5 py-8">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div><h2 class="text-3xl font-black text-pine-800">🛡️ لوحة المدير</h2><p class="text-sm font-bold text-pine-800/50">إدارة طلبات الكفالة وحالاتها: قيد المراجعة / تمت الموافقة / مرفوض</p></div>
+      <div class="flex gap-2"><button onclick="logout()" class="btn-danger-soft text-xs">تسجيل الخروج ✕</button><button onclick="showHome()" class="btn-ghost text-xs">← الموقع</button></div>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="adminStats"></div>
+    <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6 mb-6">
+      <h3 class="text-lg font-black text-pine-800 mb-1">🖼 المشاريع وصور السلايدر <small class="text-xs font-bold text-pine-800/50">(عدد غير محدود)</small></h3>
+      <p class="text-xs font-bold text-pine-800/50 mb-3">أضف مشاريع جديدة لاحقاً، وارفع صوراً لكل مشروع — تظهر فوراً في المعرض والشريط.</p>
+      <div id="adminProjects"></div>
+      <div class="grid sm:grid-cols-3 gap-2 mt-4">
+        <input id="newProjName" class="search-input" placeholder="اسم المشروع الجديد *">
+        <input id="newProjDesc" class="search-input" placeholder="وصف مختصر (اختياري)">
+        <button onclick="addProject()" class="btn-solid">+ إضافة مشروع</button>
+      </div>
+    </div>
+    <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6">
+      <div class="flex flex-wrap gap-2 mb-4 items-center">
+        <input id="adminSearch" oninput="renderAdmin()" placeholder="🔍 بحث بالاسم أو الهوية أو الجوال..." class="search-input">
+        <div class="flex gap-2 text-sm font-bold">
+          <button onclick="setFilter('all')" data-f="all" class="flt active">الكل</button>
+          <button onclick="setFilter('pending')" data-f="pending" class="flt">⏳ قيد المراجعة</button>
+          <button onclick="setFilter('approved')" data-f="approved" class="flt">✅ تمت الموافقة</button>
+          <button onclick="setFilter('rejected')" data-f="rejected" class="flt">❌ مرفوض</button>
+        </div>
+        <button onclick="exportCSV()" class="btn-ghost text-xs mr-auto">⬇ تصدير CSV</button>
+      </div>
+      <div class="overflow-x-auto"><table class="tbl"><thead><tr><th>اليتيم</th><th>الهوية</th><th>الميلاد</th><th>الوصي / الجوال</th><th>السكن</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="adminRows"></tbody></table></div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= لوحة اليتيم ================= -->
+<main id="view-orphan" class="hidden min-h-screen bg-[#F2EFE6]">
+  <div class="max-w-4xl mx-auto px-5 py-10">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-3xl font-black text-pine-800">🌙 حساب اليتيم</h2>
+      <div class="flex gap-2"><button onclick="logout()" class="btn-danger-soft text-xs">خروج ✕</button><button onclick="showHome()" class="btn-ghost text-xs">← الموقع</button></div>
+    </div>
+    <div id="orphanCard"></div>
+  </div>
+</main>
+
+<!-- ================= الفوتر ================= -->
+<footer class="bg-pine-900 text-white pt-14 pb-6 relative overflow-hidden">
+  <div class="max-w-7xl mx-auto px-5 grid md:grid-cols-4 gap-8 relative z-10">
+    <div class="text-center md:text-right">
+      <div class="flex items-center justify-center md:justify-start gap-3 mb-3">
+        <img src="assets/logo.png" alt="شعار مؤسسة أبرار الخير" class="logo-img-sm">
+        <b class="text-xl font-black">أبرار الخير</b>
+      </div>
+      <p class="text-white/60 text-sm font-semibold leading-loose">مؤسسة أبرار الخير للإغاثة الإنسانية تعنى بكفالة أيتام قطاع غزة ورعايتهم. عطاء يصنع الحياة.</p>
+      <div class="flex justify-center md:justify-start gap-2 mt-4" id="socialRow">
+        <a href="#" title="فيسبوك" class="soc">f</a><a href="#" title="انستغرام" class="soc">◉</a><a href="#" title="إكس" class="soc">X</a><a href="#" title="تيك توك" class="soc">♪</a><a href="#" title="تيليجرام" class="soc">✈</a><a href="https://wa.me/970597364752" title="واتساب" class="soc soc-wa">✆</a>
+      </div>
+    </div>
+    <div><b class="f-title">روابط سريعة</b><ul class="f-list"><li><a href="#hero">الرئيسية</a></li><li><a href="#gallery">معرض الكفالة</a></li><li><a href="#kafaala">كفالة يتيم</a></li><li><a href="#contribute">ساهم معنا</a></li></ul></div>
+    <div><b class="f-title">الكفالة</b><ul class="f-list"><li><a href="#kafaala">تسجيل يتيم جديد</a></li><li>تقارير موثقة للكافلين</li></ul></div>
+    <div><b class="f-title">📍 العنوان</b><ul class="f-list"><li>فلسطين – قطاع غزة</li><li dir="ltr">+970 597 364 752</li><li class="text-gold-light">🕘 السبت – الخميس: 9ص – 4م</li></ul></div>
+  </div>
+  <div class="foot-giant" aria-hidden="true">أبرار الخير</div>
+  <div class="border-t border-white/10 mt-2 pt-4 text-center text-xs text-white/40 font-semibold px-4">© 2026 مؤسسة أبرار الخير للإغاثة الإنسانية – جميع الحقوق محفوظة • صُنع بحب في غزة</div>
+</footer>
+
+<!-- زر واتساب عائم -->
+<a href="https://wa.me/970597364752?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85" target="_blank" class="wa-float" title="تواصل واتساب">✆</a>
+
+<!-- ================= نافذة الدخول ================= -->
+<div id="loginModal" class="modal hidden">
+  <div class="modal-card">
+    <button onclick="closeLogin()" class="modal-x">✕</button>
+    <div id="loginOrphan">
+      <h3 class="text-2xl font-black text-pine-800 mb-1">🌙 دخول اليتيم</h3>
+      <p class="text-sm text-pine-800/60 font-bold mb-5">رقم الهوية + تاريخ الميلاد (كلمة المرور)</p>
+      <div class="field"><label>رقم هوية اليتيم</label><input id="l_orphan_id" inputmode="numeric" maxlength="9" placeholder="9 أرقام" dir="ltr"></div>
+      <div class="field mt-3"><label>تاريخ الميلاد (كلمة المرور)</label><input id="l_orphan_birth" type="date" dir="ltr"></div>
+      <p id="loginOrphanErr" class="err hidden"></p>
+      <button onclick="doOrphanLogin()" class="btn-submit mt-4">دخول ←</button>
+      <p class="text-xs text-center mt-3 text-pine-800/50 font-bold">ليس لديك حساب؟ <a href="#kafaala" onclick="closeLogin()" class="text-gold-dark underline">سجّل في الكفالة أولاً</a></p>
+    </div>
+    <div id="loginAdmin" class="hidden">
+      <h3 class="text-2xl font-black text-pine-800 mb-1">🛡️ دخول المدير</h3>
+      <p class="text-sm text-pine-800/60 font-bold mb-5">لوحة إدارة طلبات الكفالة</p>
+      <div class="field"><label>اسم المستخدم</label><input id="l_admin_user" placeholder="admin" dir="ltr"></div>
+      <div class="field mt-3"><label>كلمة المرور</label><input id="l_admin_pass" type="password" placeholder="••••••" dir="ltr"></div>
+      <p id="loginAdminErr" class="err hidden"></p>
+      <button onclick="doAdminLogin()" class="btn-submit mt-4">دخول اللوحة ←</button>
+      <div class="demo-box">حساب تجريبي للمدير:<br><b dir="ltr">admin / admin123</b></div>
+    </div>
+  </div>
+</div>
+
+<!-- تفاصيل طلب (مدير) -->
+<div id="detailModal" class="modal hidden"><div class="modal-card max-w-2xl"><button onclick="document.getElementById('detailModal').classList.add('hidden')" class="modal-x">✕</button><div id="detailBody"></div></div></div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
