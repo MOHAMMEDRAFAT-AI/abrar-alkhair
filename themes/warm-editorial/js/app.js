@@ -5,8 +5,8 @@ const ADMIN = { user: 'admin', pass: 'admin123' };
 const WA_NUMBER = '970597364752';
 
 /* ---------- Supabase (ضع بيانات مشروعك هنا — وإلا يعمل الموقع محلياً) ---------- */
-const SUPABASE_URL = 'PASTE_SUPABASE_URL';
-const SUPABASE_KEY = 'PASTE_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://irwmxhkqoueqmmikwjye.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyd214aGtxb3VlcW1taWt3anllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwNzA0OTEsImV4cCI6MjEwNzY0NjQ5MX0.zjfKFEPk-mlI6hXK5myFfBUepNpfDUcQe2FdUTnH6F0';
 const sb = (window.supabase && SUPABASE_URL.startsWith('http'))
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 const useSB = !!sb;
