@@ -139,7 +139,7 @@ function enterAdmin(){
   document.getElementById('view-orphan').classList.add('hidden');
   document.getElementById('view-admin').classList.remove('hidden');
   document.getElementById('authStateLabel').textContent='🛡️ مسجل كمدير';
-  renderAdmin(); renderProjectsAdmin(); window.scrollTo({top:0});
+  renderAdmin(); renderProjectsAdmin(); renderAdmins(); window.scrollTo({top:0});
 }
 function setFilter(f){ currentFilter=f; document.querySelectorAll('.flt').forEach(b=>b.classList.toggle('active', b.dataset.f===f)); renderAdmin(); }
 async function renderAdmin(){
@@ -262,6 +262,34 @@ async function uploadImgs(pid,input){
   input.value='';
   if(ok && await dbUpsertProject(p)){ renderProjectsAdmin(); refreshSite(); toast(`✅ تمت إضافة ${ok} صورة`); }
   else if(!ok) toast('⚠️ لم تُرفع أي صورة');
+}
+
+/* ---------- إدارة المدراء (عبر Edge Function) ---------- */
+async function callAdminFn(body){
+  if(!useSB){ toast('⚠️ إدارة المدراء تتطلب تفعيل Supabase'); return null; }
+  const { data, error } = await sb.functions.invoke('create-admin',{body});
+  if(error){ toast('⚠️ تعذر الاتصال بالخدمة — تأكد من نشر الدالة (أنظر README)'); return null; }
+  if(data?.error){ toast('⚠️ '+({unauthorized:'غير مصرح — سجل الدخول أولاً','invalid':'بيانات غير صالحة','no-self':'لا يمكنك حذف نفسك','bad-action':'طلب خاطئ'}[data.error]||data.error)); return null; }
+  return data;
+}
+async function renderAdmins(){
+  const box=document.getElementById('adminList'); if(!box) return;
+  if(!useSB){ box.innerHTML='<p class="text-xs font-bold" style="color:#999">تُدار حسابات المدراء عبر Supabase بعد التفعيل.</p>'; return; }
+  const d=await callAdminFn({action:'list'}); if(!d||!d.users) return;
+  box.innerHTML=d.users.length? d.users.map(u=>`<div class="kv"><span>${esc(u.email)}</span><b><button class="rowbtn del" onclick="delAdmin('${u.id}')">حذف 🗑</button></b></div>`).join('')
+    : '<p class="text-xs font-bold" style="color:#999">لا يوجد مدراء.</p>';
+}
+async function addAdmin(){
+  const email=document.getElementById('newAdminEmail').value.trim(), password=document.getElementById('newAdminPass').value;
+  if(!email||password.length<6) return toast('⚠️ أدخل بريداً صحيحاً وكلمة مرور 6 أحرف فأكثر');
+  if(!await callAdminFn({action:'create',email,password})) return;
+  document.getElementById('newAdminEmail').value=''; document.getElementById('newAdminPass').value='';
+  renderAdmins(); toast('✅ تمت إضافة المدير — يمكنه الدخول الآن');
+}
+async function delAdmin(id){
+  if(!confirm('حذف هذا المدير نهائياً؟ لن يستطيع الدخول بعدها.')) return;
+  if(!await callAdminFn({action:'delete',id})) return;
+  renderAdmins(); toast('🗑 تم حذف المدير');
 }
 
 /* ---------- لوحة اليتيم ---------- */

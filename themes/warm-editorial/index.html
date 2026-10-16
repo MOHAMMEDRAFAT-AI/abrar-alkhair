@@ -235,6 +235,16 @@ tailwind.config = {
         <button onclick="addProject()" class="btn-solid">+ إضافة مشروع</button>
       </div>
     </div>
+    <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6 mb-6">
+      <h3 class="text-lg font-black text-pine-800 mb-1">👥 إدارة المدراء</h3>
+      <p class="text-xs font-bold text-pine-800/50 mb-3">أضف مديراً ثانياً بالبريد وكلمة المرور — يدخل من نافذة «دخول المدير» بنفس الصلاحيات.</p>
+      <div id="adminList"></div>
+      <div class="grid sm:grid-cols-3 gap-2 mt-3">
+        <input id="newAdminEmail" type="email" class="search-input" placeholder="بريد المدير الجديد *" dir="ltr">
+        <input id="newAdminPass" type="password" class="search-input" placeholder="كلمة مرور (6 أحرف فأكثر) *" dir="ltr">
+        <button onclick="addAdmin()" class="btn-solid">+ إضافة مدير</button>
+      </div>
+    </div>
     <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6">
       <div class="flex flex-wrap gap-2 mb-4 items-center">
         <input id="adminSearch" oninput="renderAdmin()" placeholder="🔍 بحث بالاسم أو الهوية أو الجوال..." class="search-input">

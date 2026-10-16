@@ -30,6 +30,16 @@ python -m http.server 8000
 2. الصق كامل ملف `supabase/schema.sql` في **SQL Editor** ← Run (ينشئ الجداول والصلاحيات والتخزين وبيانات البداية)
 3. من **Authentication** ← Add user ← أنشئ حساب المدير (بريد + كلمة مرور)
 4. الصق القيم في أعلى `js/app.js`: `SUPABASE_URL` و`SUPABASE_ANON_KEY` — وارفع الموقع
+
+## إضافة مدير ثانٍ (من لوحة المدير)
+1. من **Authentication > Settings** عطّل **Enable email signups** (حتى لا يسجل أحد بنفسه)
+2. انشر الدالة من جهازك (مرة واحدة):
+```powershell
+npx supabase login
+npx supabase link --project-ref irwmxhkqoueqmmikwjye
+npx supabase functions deploy create-admin
+```
+3. من لوحة المدير ← **إدارة المدراء** ← أدخل البريد وكلمة المرور ← إضافة — والمدير الجديد يدخل بنفس النافذة.
 > القبول = تسجيل الطلب لدينا، وعند توفر الدعم يُرشَّح الاسم للكفالة (وليس كفالة سارية فوراً).
 
 ## الدورة
