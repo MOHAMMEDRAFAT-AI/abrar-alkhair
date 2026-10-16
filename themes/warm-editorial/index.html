@@ -306,7 +306,7 @@ tailwind.config = {
       <div class="field mt-3"><label>كلمة المرور</label><input id="l_admin_pass" type="password" placeholder="••••••" dir="ltr"></div>
       <p id="loginAdminErr" class="err hidden"></p>
       <button onclick="doAdminLogin()" class="btn-submit mt-4">دخول اللوحة ←</button>
-      <div class="demo-box">حساب تجريبي للمدير:<br><b dir="ltr">admin / admin123</b></div>
+      <div class="demo-box" id="adminDemoBox">حساب تجريبي للمدير:<br><b dir="ltr">admin / admin123</b></div>
     </div>
   </div>
 </div>
@@ -316,6 +316,7 @@ tailwind.config = {
 
 <div id="toast" class="toast hidden"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
