@@ -398,7 +398,7 @@ function currentImages(){ const p=currentProject(); return p?p.images:[]; }
 /* الشريط: أسماء المشاريع + معلومات الكفالة — حلقة seamless */
 function renderStrip(){
   const mq=document.getElementById('marqueeTrack'); if(!mq) return;
-  const chips=[...PCACHE.map(p=>p.name),'كفالة شهرية · 100 ₪','تقارير موثقة للكافلين','تواصل مباشر عبر واتساب'];
+  const chips=[...PCACHE.map(p=>p.name),'تقارير موثقة للكافلين','تواصل مباشر عبر واتساب'];
   const half=chips.map(c=>`<span class="donor-chip">${esc(c)}</span><i>✦</i>`).join('');
   mq.innerHTML=half+half;
 }
