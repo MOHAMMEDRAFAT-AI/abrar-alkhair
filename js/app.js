@@ -13,18 +13,14 @@ const useSB = !!sb;
 
 let currentFilter = 'all';
 let visibleRows = [];
+const PAGE_SIZE = 50;
+let adminPage = 1, adminPages = 1, adminTotal = 0, adminReq = 0, adminSearchTimer = null;
 
 /* ---------- تخزين الطلبات ---------- */
 function loadRequests(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch{ return []; } }
 function saveRequests(r){ localStorage.setItem(LS_KEY, JSON.stringify(r)); }
 
 /* طبقة الطلبات: Supabase عند توفره، وإلا localStorage */
-async function dbListRequests(){
-  if(!useSB) return loadRequests();
-  const { data, error } = await sb.from('requests').select('*').order('created_at',{ascending:false});
-  if(error){ toast('⚠️ تعذر جلب الطلبات: '+error.message); return []; }
-  return data;
-}
 async function dbAddRequest(d){
   if(!useSB){ const all=loadRequests(); all.unshift(d); saveRequests(all); return true; }
   const { error } = await sb.from('requests').insert([{...d, status:'pending', created_at:new Date().toISOString()}]);
@@ -142,20 +138,82 @@ function enterAdmin(){
   document.getElementById('authStateLabel').textContent='🛡️ مسجل كمدير';
   renderAdmin(); renderProjectsAdmin(); renderAdmins(); window.scrollTo({top:0});
 }
-function setFilter(f){ currentFilter=f; document.querySelectorAll('.flt').forEach(b=>b.classList.toggle('active', b.dataset.f===f)); renderAdmin(); }
+function setFilter(f){ currentFilter=f; adminPage=1; document.querySelectorAll('.flt').forEach(b=>b.classList.toggle('active', b.dataset.f===f)); renderAdmin(); }
+function onAdminSearch(){ adminPage=1; clearTimeout(adminSearchTimer); adminSearchTimer=setTimeout(()=>renderAdmin(),350); }
+function fmtNum(n){ return (+n||0).toLocaleString('en-US'); }
+function adminScope(){ return { filter: currentFilter, q: (document.getElementById('adminSearch').value||'').trim() }; }
+function adminTerm(q){ return String(q||'').replace(/[,()%\\]/g,' ').trim(); }
+/* تبني استعلاماً مقيّداً بالفلتر والبحث الحاليين (إن وُجد حالة معيّنة يُقيَّد بها بدل الفلتر) */
+function withScope(qy, sc, statusOverride){
+  const st = statusOverride!==undefined ? statusOverride : (sc.filter!=='all'? sc.filter : null);
+  if(st==='nonpending') qy=qy.neq('status','pending');
+  else if(st) qy=qy.eq('status',st);
+  const term=adminTerm(sc.q);
+  if(term) qy=qy.or(`orphan_name.ilike.%${term}%,orphan_id.ilike.%${term}%,phone_primary.ilike.%${term}%,guardian_name.ilike.%${term}%`);
+  return qy;
+}
+async function adminCount(sc, statusOverride){
+  const { count, error } = await withScope(sb.from('requests').select('*',{count:'exact',head:true}), sc, statusOverride);
+  if(error) throw error;
+  return count||0;
+}
+async function adminFetchRows(sc, statusOverride, from, to){
+  const { data, error } = await withScope(sb.from('requests').select('*'), sc, statusOverride)
+    .order('created_at',{ascending:false}).range(from,to);
+  if(error) throw error;
+  return data||[];
+}
+/* إحصاءات حقيقية عبر عدّ مباشر في قاعدة البيانات (لا تتأثر بحد الـ1000 صف) */
+async function adminStatsData(){
+  if(!useSB){
+    const all=loadRequests(), c=s=>all.filter(r=>r.status===s).length;
+    return { total:all.length, pending:c('pending'), approved:c('approved'), rejected:c('rejected') };
+  }
+  const [t,p,a,r]=await Promise.all([
+    sb.from('requests').select('*',{count:'exact',head:true}),
+    sb.from('requests').select('*',{count:'exact',head:true}).eq('status','pending'),
+    sb.from('requests').select('*',{count:'exact',head:true}).eq('status','approved'),
+    sb.from('requests').select('*',{count:'exact',head:true}).eq('status','rejected')
+  ]);
+  const err=t.error||p.error||a.error||r.error;
+  if(err) throw err;
+  return { total:t.count||0, pending:p.count||0, approved:a.count||0, rejected:r.count||0 };
+}
+/* صفحة واحدة من الطلبات: قيد المراجعة أولاً ثم الأحدث — عبر استعلامات مقسّمة عند الحد */
+async function adminFetchPage(sc){
+  const from=(adminPage-1)*PAGE_SIZE, to=from+PAGE_SIZE-1;
+  if(!useSB){
+    let rows=loadRequests();
+    if(sc.filter!=='all') rows=rows.filter(r=>r.status===sc.filter);
+    const term=sc.q;
+    if(term) rows=rows.filter(r=>[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name].join(' ').includes(term));
+    rows.sort((a,b)=>(a.status==='pending'?0:1)-(b.status==='pending'?0:1)||String(b.created_at||'').localeCompare(String(a.created_at||'')));
+    return { total:rows.length, rows:rows.slice(from,to+1) };
+  }
+  if(sc.filter!=='all') return { total:await adminCount(sc), rows:await adminFetchRows(sc, undefined, from, to) };
+  const [total, pend]=await Promise.all([adminCount(sc), adminCount(sc,'pending')]);
+  let rows=[];
+  if(from<pend) rows=rows.concat(await adminFetchRows(sc,'pending',from,Math.min(to,pend-1)));
+  if(to>=pend) rows=rows.concat(await adminFetchRows(sc,'nonpending',Math.max(from,pend)-pend,to-pend));
+  return { total, rows };
+}
 async function renderAdmin(){
-  const q=(document.getElementById('adminSearch').value||'').trim();
-  let rows=await dbListRequests();
-  const total=rows.length, pend=rows.filter(r=>r.status==='pending').length, ok=rows.filter(r=>r.status==='approved').length, no=rows.filter(r=>r.status==='rejected').length;
+  const req=++adminReq;
+  const sc=adminScope();
+  let stats, page;
+  try{ [stats, page]=await Promise.all([adminStatsData(), adminFetchPage(sc)]); }
+  catch(e){ if(req===adminReq) toast('⚠️ تعذر جلب الطلبات: '+(e?.message||e)); return; }
+  if(req!==adminReq) return;
   document.getElementById('adminStats').innerHTML=`
-    <div class="stat-mini"><b>${total}</b><span>📋 إجمالي الطلبات</span></div>
-    <div class="stat-mini" style="border-color:#f59e0b"><b>${pend}</b><span>⏳ قيد المراجعة</span></div>
-    <div class="stat-mini" style="border-color:#22c55e"><b>${ok}</b><span>✅ تمت الموافقة</span></div>
-    <div class="stat-mini" style="border-color:#e11d48"><b>${no}</b><span>❌ مرفوض</span></div>`;
-  if(currentFilter!=='all') rows=rows.filter(r=>r.status===currentFilter);
-  if(q) rows=rows.filter(r=>[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name].join(' ').includes(q));
-  visibleRows = rows;
-  document.getElementById('adminRows').innerHTML = rows.length? rows.map(r=>`
+    <div class="stat-mini"><b>${fmtNum(stats.total)}</b><span>📋 إجمالي الطلبات</span></div>
+    <div class="stat-mini" style="border-color:#f59e0b"><b>${fmtNum(stats.pending)}</b><span>⏳ قيد المراجعة</span></div>
+    <div class="stat-mini" style="border-color:#22c55e"><b>${fmtNum(stats.approved)}</b><span>✅ تمت الموافقة</span></div>
+    <div class="stat-mini" style="border-color:#e11d48"><b>${fmtNum(stats.rejected)}</b><span>❌ مرفوض</span></div>`;
+  adminTotal=page.total;
+  adminPages=Math.max(1, Math.ceil(page.total/PAGE_SIZE));
+  if(adminPage>adminPages){ adminPage=adminPages; return renderAdmin(); }
+  visibleRows=page.rows;
+  document.getElementById('adminRows').innerHTML = page.rows.length? page.rows.map(r=>`
     <tr>
       <td><b>${esc(r.orphan_name)}</b><br><small class="text-gray-500">${esc(r.orphan_gender||'')}</small></td>
       <td dir="ltr" class="font-bold">${esc(r.orphan_id)}</td>
@@ -171,6 +229,29 @@ async function renderAdmin(){
         <button class="rowbtn del" onclick="delReq('${r.orphan_id}')">🗑</button>
       </div></td>
     </tr>`).join('') : '<tr><td colspan="7" class="text-center py-10 text-gray-400 font-bold">لا توجد طلبات مطابقة 🔍</td></tr>';
+  renderPager(page.total, adminPages);
+}
+function pagerNums(cur, pages){
+  const s=new Set([1,2,cur-2,cur-1,cur,cur+1,cur+2,pages-1,pages]);
+  const arr=[...s].filter(n=>n>=1&&n<=pages).sort((a,b)=>a-b);
+  const out=[]; arr.forEach((n,i)=>{ if(i&&n-arr[i-1]>1) out.push('…'); out.push(n); });
+  return out;
+}
+function renderPager(total, pages){
+  const box=document.getElementById('adminPager'); if(!box) return;
+  const info=`إجمالي <b>${fmtNum(total)}</b> طلب • صفحة <b>${adminPage}</b> من <b>${fmtNum(pages)}</b>`;
+  if(pages<=1){ box.innerHTML=`<div class="pager-info">${info}</div>`; return; }
+  const btn=(label,p,dis,act)=>`<button class="pg${act?' active':''}" ${dis?'disabled':''} onclick="goAdminPage(${p})">${label}</button>`;
+  let html=btn('« الأولى',1,adminPage<=1)+btn('‹ السابقة',adminPage-1,adminPage<=1);
+  pagerNums(adminPage,pages).forEach(n=>{ html+= n==='…' ? '<span class="pg-dots">…</span>' : btn(String(n),n,false,n===adminPage); });
+  html+=btn('التالية ›',adminPage+1,adminPage>=pages)+btn('الأخيرة »',pages,adminPage>=pages);
+  box.innerHTML=`<div class="pager-info">${info}</div><div class="pager-btns">${html}</div>`;
+}
+function goAdminPage(p){
+  p=Math.min(Math.max(1, Math.floor(p)||1), adminPages);
+  if(p===adminPage) return;
+  adminPage=p; renderAdmin();
+  document.getElementById('adminTableWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function setStatus(id, st){
   if(!await dbSetStatus(id,st)) return;
@@ -178,17 +259,26 @@ async function setStatus(id, st){
   toast(st==='approved'?'✅ تم قبول التسجيل':st==='rejected'?'❌ تم الرفض':'⏳ أُعيد للمراجعة');
 }
 async function bulkSetStatus(st){
-  const rows=visibleRows||[];
-  if(!rows.length) return toast('⚠️ لا توجد طلبات معروضة');
-  const todo=rows.filter(r=>r.status!==st);
-  if(!todo.length) return toast('كل الطلبات المعروضة بهذه الحالة بالفعل');
+  const sc=adminScope();
   const label = st==='approved'?'قبول':'رفض';
-  if(!confirm(`هل تريد ${label} جميع الطلبات المعروضة (${todo.length})؟`)) return;
+  const inScope=(r,term)=> (sc.filter==='all'||r.status===sc.filter) && r.status!==st && (!term||[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name].join(' ').includes(term));
+  if(!useSB){
+    const all=loadRequests(), term=sc.q;
+    const affected=all.filter(r=>inScope(r,term)).length;
+    if(!affected) return toast('⚠️ لا توجد طلبات جديدة مطابقة');
+    if(!confirm(`هل تريد ${label} جميع الطلبات المطابقة للفلتر الحالي (${fmtNum(affected)})؟`)) return;
+    all.forEach(r=>{ if(inScope(r,term)) r.status=st; });
+    saveRequests(all); renderAdmin(); toast(`✅ تم ${label} ${fmtNum(affected)} طلب`); return;
+  }
+  let affected=0;
+  try{ affected=Math.max(0, (await adminCount(sc)) - (await adminCount(sc,st))); }
+  catch(e){ return toast('⚠️ تعذر حساب الطلبات: '+(e?.message||e)); }
+  if(!affected) return toast('⚠️ لا توجد طلبات جديدة مطابقة');
+  if(!confirm(`هل تريد ${label} جميع الطلبات المطابقة للفلتر الحالي (${fmtNum(affected)})؟`)) return;
   toast('⏳ جارٍ تحديث الطلبات...');
-  let ok=0;
-  for(const r of todo){ if(await dbSetStatus(r.orphan_id,st)) ok++; }
-  renderAdmin();
-  toast(`✅ تم ${label} ${ok} طلب`);
+  const { error } = await withScope(sb.from('requests').update({status:st}), sc).neq('status', st);
+  if(error) return toast('⚠️ تعذر التحديث: '+error.message);
+  renderAdmin(); toast(`✅ تم ${label} ${fmtNum(affected)} طلب`);
 }
 async function delReq(id){ if(!confirm('حذف هذا الطلب نهائياً؟')) return; if(await dbDelRequest(id)){ renderAdmin(); toast('🗑 تم الحذف'); } }
 async function viewDetail(id){
@@ -197,8 +287,25 @@ async function viewDetail(id){
   document.getElementById('detailBody').innerHTML=`<h3 class="text-xl font-black text-pine-800 mb-1">${esc(r.orphan_name)}</h3><div class="mb-4">${statusLabel(r.status)}</div>${rows}<div class="flex gap-2 mt-5"><button class="rowbtn ok flex-1 !py-3" onclick="setStatus('${r.orphan_id}','approved');viewDetail('${r.orphan_id}')">قبول ✓</button><button class="rowbtn no flex-1 !py-3" onclick="setStatus('${r.orphan_id}','rejected');viewDetail('${r.orphan_id}')">رفض ✕</button></div>`;
   document.getElementById('detailModal').classList.remove('hidden');
 }
+/* تصدير CSV لكل الطلبات (يجلب على دفعات 1000 صف لتجاوز حد الاستعلام الواحد) */
 async function exportCSV(){
-  const rows=await dbListRequests(); if(!rows.length) return toast('لا توجد بيانات للتصدير');
+  if(!useSB){
+    const rows=loadRequests(); if(!rows.length) return toast('لا توجد بيانات للتصدير');
+    downloadCSV(rows); return toast(`✅ تم تصدير ${fmtNum(rows.length)} طلب`);
+  }
+  toast('⏳ جارٍ تجهيز ملف التصدير — قد يستغرق لحظات...');
+  const all=[], size=1000;
+  for(let from=0;;from+=size){
+    const { data, error } = await sb.from('requests').select('*').order('created_at',{ascending:false}).range(from,from+size-1);
+    if(error) return toast('⚠️ تعذر التصدير: '+error.message);
+    all.push(...(data||[]));
+    if(!data||data.length<size) break;
+  }
+  if(!all.length) return toast('لا توجد بيانات للتصدير');
+  downloadCSV(all);
+  toast(`✅ تم تصدير ${fmtNum(all.length)} طلب`);
+}
+function downloadCSV(rows){
   const head=['الاسم','الهوية','الميلاد','الوصي','الجوال','النزوح','الصحة','الحالة'];
   const csv='\ufeff'+[head.join(',')].concat(rows.map(r=>[r.orphan_name,r.orphan_id,r.orphan_birth,r.guardian_name,r.phone_primary,r.displacement_address,r.health_status,r.status].map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(','))).join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='abrar_requests.csv'; a.click();

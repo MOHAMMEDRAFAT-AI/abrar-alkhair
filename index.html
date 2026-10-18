@@ -247,7 +247,7 @@ tailwind.config = {
     </div>
     <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6">
       <div class="flex flex-wrap gap-2 mb-4 items-center">
-        <input id="adminSearch" oninput="renderAdmin()" placeholder="🔍 بحث بالاسم أو الهوية أو الجوال..." class="search-input">
+        <input id="adminSearch" oninput="onAdminSearch()" placeholder="🔍 بحث بالاسم أو الهوية أو الجوال..." class="search-input">
         <div class="flex gap-2 text-sm font-bold">
           <button onclick="setFilter('all')" data-f="all" class="flt active">الكل</button>
           <button onclick="setFilter('pending')" data-f="pending" class="flt">⏳ قيد المراجعة</button>
@@ -260,7 +260,8 @@ tailwind.config = {
           <button onclick="exportCSV()" class="btn-ghost text-xs">⬇ تصدير CSV</button>
         </div>
       </div>
-      <div class="overflow-x-auto"><table class="tbl"><thead><tr><th>اليتيم</th><th>الهوية</th><th>الميلاد</th><th>الوصي / الجوال</th><th>السكن</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="adminRows"></tbody></table></div>
+      <div class="overflow-x-auto" id="adminTableWrap"><table class="tbl"><thead><tr><th>اليتيم</th><th>الهوية</th><th>الميلاد</th><th>الوصي / الجوال</th><th>السكن</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="adminRows"></tbody></table></div>
+      <div id="adminPager" class="pager"></div>
     </div>
   </div>
 </main>

@@ -234,6 +234,17 @@ body.bg-cream{ background:#F4EEE1 }
 .t-step.done{ color:var(--pine) } .t-step.done::before{ background:#22c55e; box-shadow:0 0 0 2px #22c55e } .t-step.now{ color:#92400e } .t-step.now::before{ background:#f59e0b; box-shadow:0 0 0 2px #f59e0b; animation:blink 1.5s infinite }
 .kv{ display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px dashed #13201922; font-size:14px } .kv span{ color:#13201977; font-weight:600 } .kv b{ color:var(--pine); text-align:left }
 
+/* ---------- ترقيم صفحات لوحة المدير ---------- */
+.pager{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-top:16px }
+.pager-info{ font-size:12px; font-weight:700; color:#13201988 }
+.pager-info b{ color:var(--pine) }
+.pager-btns{ display:flex; flex-wrap:wrap; align-items:center; gap:6px }
+.pg{ min-width:36px; padding:7px 11px; border-radius:8px; border:1.5px solid #13201933; background:#fffdf6; font-weight:700; font-size:12px; color:#132019aa; transition:.2s }
+.pg:hover:not(:disabled){ border-color:var(--ink); color:var(--pine) }
+.pg.active{ background:var(--ink); border-color:var(--ink); color:var(--paper) }
+.pg:disabled{ opacity:.35; cursor:default }
+.pg-dots{ font-weight:800; color:#13201966; padding:0 2px }
+
 /* ---------- الفوتر العريض ---------- */
 .f-title{ font-weight:800; color:var(--gold-l); display:block; margin-bottom:12px; font-family:'Noto Kufi Arabic',sans-serif } .f-list{ display:flex; flex-direction:column; gap:8px; font-size:14px; color:#ffffff88; font-weight:500 } .f-list a:hover{ color:var(--gold-l) }
 .soc{ width:38px;height:38px;border-radius:10px;background:#ffffff0d;border:1px solid #ffffff22;display:inline-flex;align-items:center;justify-content:center;font-weight:800;transition:.22s } .soc:hover{ background:var(--gold); border-color:var(--gold); color:var(--pine-deep); transform:translate(-2px,-2px); box-shadow:3px 3px 0 rgba(228,200,120,.4) } .soc-wa:hover{ background:#1faa53; border-color:#1faa53; color:#fff }
