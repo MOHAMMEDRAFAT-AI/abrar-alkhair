@@ -12,6 +12,7 @@ const sb = (window.supabase && SUPABASE_URL.startsWith('http'))
 const useSB = !!sb;
 
 let currentFilter = 'all';
+let visibleRows = [];
 
 /* ---------- تخزين الطلبات ---------- */
 function loadRequests(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch{ return []; } }
@@ -153,6 +154,7 @@ async function renderAdmin(){
     <div class="stat-mini" style="border-color:#e11d48"><b>${no}</b><span>❌ مرفوض</span></div>`;
   if(currentFilter!=='all') rows=rows.filter(r=>r.status===currentFilter);
   if(q) rows=rows.filter(r=>[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name].join(' ').includes(q));
+  visibleRows = rows;
   document.getElementById('adminRows').innerHTML = rows.length? rows.map(r=>`
     <tr>
       <td><b>${esc(r.orphan_name)}</b><br><small class="text-gray-500">${esc(r.orphan_gender||'')}</small></td>
@@ -174,6 +176,19 @@ async function setStatus(id, st){
   if(!await dbSetStatus(id,st)) return;
   renderAdmin();
   toast(st==='approved'?'✅ تم قبول التسجيل':st==='rejected'?'❌ تم الرفض':'⏳ أُعيد للمراجعة');
+}
+async function bulkSetStatus(st){
+  const rows=visibleRows||[];
+  if(!rows.length) return toast('⚠️ لا توجد طلبات معروضة');
+  const todo=rows.filter(r=>r.status!==st);
+  if(!todo.length) return toast('كل الطلبات المعروضة بهذه الحالة بالفعل');
+  const label = st==='approved'?'قبول':'رفض';
+  if(!confirm(`هل تريد ${label} جميع الطلبات المعروضة (${todo.length})؟`)) return;
+  toast('⏳ جارٍ تحديث الطلبات...');
+  let ok=0;
+  for(const r of todo){ if(await dbSetStatus(r.orphan_id,st)) ok++; }
+  renderAdmin();
+  toast(`✅ تم ${label} ${ok} طلب`);
 }
 async function delReq(id){ if(!confirm('حذف هذا الطلب نهائياً؟')) return; if(await dbDelRequest(id)){ renderAdmin(); toast('🗑 تم الحذف'); } }
 async function viewDetail(id){

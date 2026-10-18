@@ -254,7 +254,11 @@ tailwind.config = {
           <button onclick="setFilter('approved')" data-f="approved" class="flt">✅ تمت الموافقة</button>
           <button onclick="setFilter('rejected')" data-f="rejected" class="flt">❌ مرفوض</button>
         </div>
-        <button onclick="exportCSV()" class="btn-ghost text-xs mr-auto">⬇ تصدير CSV</button>
+        <div class="flex flex-wrap gap-2 items-center mr-auto">
+          <button onclick="bulkSetStatus('approved')" class="rowbtn ok">✓ قبول الكل</button>
+          <button onclick="bulkSetStatus('rejected')" class="rowbtn no">✕ رفض الكل</button>
+          <button onclick="exportCSV()" class="btn-ghost text-xs">⬇ تصدير CSV</button>
+        </div>
       </div>
       <div class="overflow-x-auto"><table class="tbl"><thead><tr><th>اليتيم</th><th>الهوية</th><th>الميلاد</th><th>الوصي / الجوال</th><th>السكن</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="adminRows"></tbody></table></div>
     </div>
