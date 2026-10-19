@@ -148,7 +148,11 @@ function enterAdmin(){
   document.getElementById('authStateLabel').textContent='🛡️ مسجل كمدير';
   renderAdmin(); renderProjectsAdmin(); renderAdmins(); window.scrollTo({top:0});
 }
-function setFilter(f){ currentFilter=f; adminPage=1; document.querySelectorAll('.flt').forEach(b=>b.classList.toggle('active', b.dataset.f===f)); renderAdmin(); }
+function setFilter(f){
+  currentFilter=f; adminPage=1;
+  document.querySelectorAll('.flt').forEach(b=>b.classList.toggle('active', b.dataset.f===f));
+  renderAdmin();
+}
 function onAdminSearch(){ adminPage=1; clearTimeout(adminSearchTimer); adminSearchTimer=setTimeout(()=>renderAdmin(),350); }
 function onFilterInput(){ adminPage=1; clearTimeout(adminSearchTimer); adminSearchTimer=setTimeout(()=>renderAdmin(),350); }
 function applyFilters(){ adminPage=1; renderAdmin(); }
@@ -220,9 +224,14 @@ async function adminCount(sc, statusOverride){
   if(error) throw error;
   return count||0;
 }
+/* الترتيب الفعلي: خيار «قيد المراجعة أولاً» لا معنى له مع حالة محددة، فيُستبدل بالأحدث */
+function effectiveSort(sc){
+  if(sc.filter!=='all' && sc.sort==='pending') return 'newest';
+  return sc.sort;
+}
 async function adminFetchRows(sc, statusOverride, from, to, sortOverride){
   const qy=withScope(sb.from('requests').select('*'), sc, statusOverride);
-  const { data, error } = await applySort(qy, sortOverride||sc.sort).range(from,to);
+  const { data, error } = await applySort(qy, sortOverride||effectiveSort(sc)).range(from,to);
   if(error) throw error;
   return data||[];
 }
@@ -280,10 +289,10 @@ function localSort(rows, sort){
 async function adminFetchPage(sc){
   const from=(adminPage-1)*PAGE_SIZE, to=from+PAGE_SIZE-1;
   if(!useSB){
-    const rows=localSort(localFiltered(sc), sc.sort);
+    const rows=localSort(localFiltered(sc), effectiveSort(sc));
     return { total:rows.length, rows:rows.slice(from,to+1) };
   }
-  if(sc.filter!=='all' || sc.sort!=='pending')
+  if(sc.filter!=='all' || effectiveSort(sc)!=='pending')
     return { total:await adminCount(sc), rows:await adminFetchRows(sc, undefined, from, to) };
   const [total, pend]=await Promise.all([adminCount(sc), adminCount(sc,'pending')]);
   let rows=[];
@@ -307,6 +316,10 @@ async function renderAdmin(){
   adminPages=Math.max(1, Math.ceil(page.total/PAGE_SIZE));
   if(adminPage>adminPages){ adminPage=adminPages; return renderAdmin(); }
   visibleRows=page.rows;
+  const statusName={all:'الكل',pending:'قيد المراجعة',approved:'مقبول',rejected:'مرفوض'}[sc.filter]||'الكل';
+  const sortName={pending:'قيد المراجعة أولاً',newest:'الأحدث تسجيلاً',oldest:'الأقدم تسجيلاً',name_asc:'الاسم أ←ي',name_desc:'الاسم ي←أ',guardian_asc:'الوصي أ←ي',guardian_desc:'الوصي ي←أ',birth_asc:'الأكبر سناً',birth_desc:'الأصغر سناً'}[effectiveSort(sc)]||'';
+  const hint=document.getElementById('adminFilterHint');
+  if(hint) hint.innerHTML=`الحالة: <b>${statusName}</b> • الترتيب: <b>${sortName}</b> • النتائج: <b>${fmtNum(page.total)}</b>${sc.filter!=='all'&&sc.sort==='pending'?' <span class="af-warn">(خيار «قيد المراجعة أولاً» ترتيب فقط — لا يفلتر النتائج)</span>':''}`;
   document.getElementById('adminRows').innerHTML = page.rows.length? page.rows.map(r=>`
     <tr>
       <td><b>${esc(r.orphan_name)}</b><br><small class="text-gray-500">${esc(r.orphan_gender||'')}</small></td>

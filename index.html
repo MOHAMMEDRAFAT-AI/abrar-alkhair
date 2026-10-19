@@ -242,10 +242,11 @@ tailwind.config = {
       </div>
       <div class="admin-filters">
         <div class="af-head"><b>⚙️ فلاتر متقدمة</b><button onclick="resetAdminFilters()" class="btn-ghost text-xs">↺ مسح الفلاتر</button></div>
+        <p id="adminFilterHint" class="af-hint"></p>
         <div class="af-grid">
-          <label class="af"><span>الترتيب</span>
+          <label class="af"><span>الترتيب (لا يغيّر الفلترة)</span>
             <select id="adminSort" onchange="applyFilters()">
-              <option value="pending">⏳ قيد المراجعة أولاً (افتراضي)</option>
+              <option value="pending">⏳ ترتيب: قيد المراجعة أولاً (افتراضي)</option>
               <option value="newest">🕒 الأحدث تسجيلاً</option>
               <option value="oldest">🕐 الأقدم تسجيلاً</option>
               <option value="name_asc">🔤 الاسم: أ ← ي</option>
