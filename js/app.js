@@ -76,22 +76,22 @@ async function submitKafaala(e){
   d.status='pending'; d.created_at=new Date().toISOString();
   if(!await dbAddRequest(d)) return false;
 
-  document.getElementById('sId').textContent=d.orphan_id;
-  document.getElementById('sPass').textContent=d.orphan_birth;
+  document.getElementById('sId').textContent=d.guardian_id;
+  document.getElementById('sPass').textContent=d.guardian_birth;
   document.getElementById('kafaalaSuccess').classList.remove('hidden');
   document.getElementById('kafaalaSuccess').scrollIntoView({behavior:'smooth'});
-  f.reset(); toast('✅ تم إرسال الطلب — حساب اليتيم جاهز للدخول');
+  f.reset(); toast('✅ تم إرسال الطلب — حساب الوصي جاهز للدخول');
   return false;
 }
 
 /* ---------- الدخول ---------- */
 function openLogin(type){
   document.getElementById('loginModal').classList.remove('hidden');
-  document.getElementById('loginOrphan').classList.toggle('hidden', type!=='orphan');
+  document.getElementById('loginGuardian').classList.toggle('hidden', type!=='guardian');
   document.getElementById('loginAdmin').classList.toggle('hidden', type!=='admin');
-  // تعبئة تلقائية لآخر مسجل
-  const all=loadRequests();
-  if(type==='orphan'&&all.length){ document.getElementById('l_orphan_id').value=all[0].orphan_id||''; document.getElementById('l_orphan_birth').value=all[0].orphan_birth||''; }
+  // تعبئة تلقائية لآخر مسجل (الوضع المحلي فقط)
+  const all=useSB?[]:loadRequests();
+  if(type==='guardian'&&all.length){ document.getElementById('l_guardian_id').value=all[0].guardian_id||''; document.getElementById('l_guardian_birth').value=all[0].guardian_birth||''; }
   if(type==='admin'&&useSB){
     document.getElementById('l_admin_user').placeholder='admin@abrar.ps';
     document.getElementById('adminDemoBox').innerHTML='ادخل بالبريد وكلمة المرور المنشأة من لوحة Supabase ‏(Authentication)';
@@ -99,20 +99,30 @@ function openLogin(type){
 }
 function closeLogin(){ document.getElementById('loginModal').classList.add('hidden'); }
 
-async function doOrphanLogin(){
-  const id=document.getElementById('l_orphan_id').value.trim(), birth=document.getElementById('l_orphan_birth').value;
-  const err=document.getElementById('loginOrphanErr');
+async function doGuardianLogin(){
+  const gid=document.getElementById('l_guardian_id').value.trim(), gbd=document.getElementById('l_guardian_birth').value;
+  const err=document.getElementById('loginGuardianErr');
+  if(!gid||!gbd){ err.textContent='❌ أدخل رقم هوية الوصي وتاريخ ميلاده'; err.classList.remove('hidden'); return; }
   let found=null;
   if(useSB){
-    if(!id||!birth){ err.textContent='❌ أدخل رقم الهوية وتاريخ الميلاد'; err.classList.remove('hidden'); return; }
-    const { data, error } = await sb.rpc('fetch_request',{oid:id, bd:birth});
-    if(error){ err.textContent='⚠️ تعذر الاتصال: '+error.message; err.classList.remove('hidden'); return; }
-    found=Array.isArray(data)?data[0]:data;
-  } else found=loadRequests().find(r=>r.orphan_id===id && r.orphan_birth===birth);
-  if(!found){ err.textContent='❌ بيانات الدخول غير صحيحة — تأكد من رقم الهوية وتاريخ الميلاد'; err.classList.remove('hidden'); return; }
+    const { data, error } = await sb.rpc('fetch_guardian_requests',{gid, gbd});
+    if(error){
+      err.textContent=/fetch_guardian_requests|schema cache|does not exist/i.test(error.message||'')
+        ? '⚠️ فعّل دالة الدخول الجديدة: نفّذ ملف supabase/guardian-accounts.sql في Supabase SQL Editor'
+        : '⚠️ تعذر الاتصال: '+error.message;
+      err.classList.remove('hidden'); return;
+    }
+    found=Array.isArray(data)?data:(data?[data]:[]);
+  } else {
+    const all=loadRequests().filter(r=>r.guardian_id===gid);
+    found=all.some(r=>r.guardian_birth===gbd)?all:[];
+  }
+  if(!found||!found.length){ err.textContent='❌ بيانات الدخول غير صحيحة — تأكد من رقم هوية الوصي وتاريخ ميلاده'; err.classList.remove('hidden'); return; }
   err.classList.add('hidden'); closeLogin();
-  localStorage.setItem(SESSION_KEY, JSON.stringify({type:'orphan', id}));
-  enterOrphan(found); toast('🌙 أهلاً '+found.orphan_name.split(' ')[0]+' — تم الدخول بنجاح');
+  localStorage.setItem(SESSION_KEY, JSON.stringify({type:'guardian', gid, gbd}));
+  enterGuardian(found);
+  const first=(found[0].guardian_name||'').split(' ')[0];
+  toast('🌙 أهلاً '+first+' — لديك '+found.length+' أيتام مسجلين');
 }
 async function doAdminLogin(){
   const u=document.getElementById('l_admin_user').value.trim(), p=document.getElementById('l_admin_pass').value;
@@ -128,12 +138,12 @@ async function doAdminLogin(){
   else{ err.textContent='❌ اسم المستخدم أو كلمة المرور خاطئة'; err.classList.remove('hidden'); }
 }
 function logout(){ if(useSB) sb.auth.signOut(); localStorage.removeItem(SESSION_KEY); showHome(); toast('تم تسجيل الخروج'); }
-function showHome(){ ['view-admin','view-orphan'].forEach(v=>document.getElementById(v).classList.add('hidden')); document.getElementById('view-home').classList.remove('hidden'); document.getElementById('authStateLabel').textContent=''; window.scrollTo({top:0}); }
+function showHome(){ ['view-admin','view-guardian'].forEach(v=>document.getElementById(v).classList.add('hidden')); document.getElementById('view-home').classList.remove('hidden'); document.getElementById('authStateLabel').textContent=''; window.scrollTo({top:0}); }
 
 /* ---------- لوحة المدير ---------- */
 function enterAdmin(){
   document.getElementById('view-home').classList.add('hidden');
-  document.getElementById('view-orphan').classList.add('hidden');
+  document.getElementById('view-guardian').classList.add('hidden');
   document.getElementById('view-admin').classList.remove('hidden');
   document.getElementById('authStateLabel').textContent='🛡️ مسجل كمدير';
   renderAdmin(); renderProjectsAdmin(); renderAdmins(); window.scrollTo({top:0});
@@ -149,7 +159,7 @@ function withScope(qy, sc, statusOverride){
   if(st==='nonpending') qy=qy.neq('status','pending');
   else if(st) qy=qy.eq('status',st);
   const term=adminTerm(sc.q);
-  if(term) qy=qy.or(`orphan_name.ilike.%${term}%,orphan_id.ilike.%${term}%,phone_primary.ilike.%${term}%,guardian_name.ilike.%${term}%`);
+  if(term) qy=qy.or(`orphan_name.ilike.%${term}%,orphan_id.ilike.%${term}%,phone_primary.ilike.%${term}%,guardian_name.ilike.%${term}%,guardian_id.ilike.%${term}%`);
   return qy;
 }
 async function adminCount(sc, statusOverride){
@@ -186,7 +196,7 @@ async function adminFetchPage(sc){
     let rows=loadRequests();
     if(sc.filter!=='all') rows=rows.filter(r=>r.status===sc.filter);
     const term=sc.q;
-    if(term) rows=rows.filter(r=>[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name].join(' ').includes(term));
+    if(term) rows=rows.filter(r=>[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name,r.guardian_id].join(' ').includes(term));
     rows.sort((a,b)=>(a.status==='pending'?0:1)-(b.status==='pending'?0:1)||String(b.created_at||'').localeCompare(String(a.created_at||'')));
     return { total:rows.length, rows:rows.slice(from,to+1) };
   }
@@ -261,7 +271,7 @@ async function setStatus(id, st){
 async function bulkSetStatus(st){
   const sc=adminScope();
   const label = st==='approved'?'قبول':'رفض';
-  const inScope=(r,term)=> (sc.filter==='all'||r.status===sc.filter) && r.status!==st && (!term||[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name].join(' ').includes(term));
+  const inScope=(r,term)=> (sc.filter==='all'||r.status===sc.filter) && r.status!==st && (!term||[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name,r.guardian_id].join(' ').includes(term));
   if(!useSB){
     const all=loadRequests(), term=sc.q;
     const affected=all.filter(r=>inScope(r,term)).length;
@@ -414,32 +424,61 @@ async function delAdmin(id){
   renderAdmins(); toast('🗑 تم حذف المدير');
 }
 
-/* ---------- لوحة اليتيم ---------- */
-function enterOrphan(r){
+/* ---------- لوحة الوصي: حساب واحد يعرض جميع الأيتام المسجلين تحته ---------- */
+function enterGuardian(rows){
+  if(!Array.isArray(rows)) rows=[rows];
+  rows=rows.filter(Boolean);
+  if(!rows.length) return;
   document.getElementById('view-home').classList.add('hidden');
   document.getElementById('view-admin').classList.add('hidden');
-  document.getElementById('view-orphan').classList.remove('hidden');
-  document.getElementById('authStateLabel').textContent='🌙 '+r.orphan_name.split(' ').slice(0,2).join(' ');
-  const stBox = r.status==='approved'? '<span class="status-approved">✅ تم قبول التسجيل — اسمك مسجل لدينا، وعند توفر الدعم سنرشحك للكفالة</span>' : r.status==='rejected'? '<span class="status-rejected">❌ لم يتم القبول — تواصل معنا واتساب للاستفسار</span>' : '<span class="status-pending">⏳ قيد المراجعة — سنرد قريباً</span>';
-  const step = r.status==='approved'? 3 : r.status==='rejected'? 3 : 2;
-  document.getElementById('orphanCard').innerHTML=`
+  document.getElementById('view-guardian').classList.remove('hidden');
+  const g=rows[0];
+  const okN=rows.filter(r=>r.status==='approved').length, pendN=rows.filter(r=>r.status==='pending').length, rejN=rows.filter(r=>r.status==='rejected').length;
+  document.getElementById('authStateLabel').textContent='🌙 '+(g.guardian_name||'').split(' ').slice(0,2).join(' ');
+  document.getElementById('guardianPanel').innerHTML=`
     <div class="bg-white rounded-3xl shadow-card p-6 sm:p-8 mb-4 text-center">
-      <div class="w-20 h-20 mx-auto rounded-full bg-pine-800 text-gold-light text-3xl font-black flex items-center justify-center mb-3">${esc(r.orphan_name.trim()[0]||'ي')}</div>
-      <h3 class="text-2xl font-black text-pine-800">${esc(r.orphan_name)}</h3>
-      <p class="text-sm font-bold text-pine-800/50">هوية: <bdi dir="ltr">${esc(r.orphan_id)}</bdi> • ميلاد: <bdi dir="ltr">${esc(r.orphan_birth)}</bdi></p>
-      <div class="mt-3">${stBox}</div>
-      <div class="timeline text-right max-w-sm mx-auto mt-6">
-        <div class="t-step done">📝 تم استلام طلب الكفالة</div>
-        <div class="t-step ${step>=2?'done':''}">🔍 ${r.status==='pending'?'طلبك قيد المراجعة الآن':'تمت مراجعة الطلب'}</div>
-        <div class="t-step ${r.status==='approved'?'done':r.status==='rejected'?'now':''}">${r.status==='approved'?'🎉 تم قبول تسجيلك — سنرشح اسمك عند توفر الدعم':r.status==='rejected'?'تم اتخاذ قرار — تواصل معنا':'⏳ القرار النهائي قريباً'}</div>
+      <div class="w-20 h-20 mx-auto rounded-full bg-pine-800 text-gold-light text-3xl font-black flex items-center justify-center mb-3">${esc((g.guardian_name||'و').trim()[0]||'و')}</div>
+      <h3 class="text-2xl font-black text-pine-800">${esc(g.guardian_name)}</h3>
+      <p class="text-sm font-bold text-pine-800/50">هوية الوصي: <bdi dir="ltr">${esc(g.guardian_id)}</bdi> • جوال: <bdi dir="ltr">${esc(g.phone_primary||'-')}</bdi></p>
+      <div class="flex flex-wrap justify-center gap-2 mt-4 text-xs font-bold">
+        <span class="status-approved">✅ ${okN} مقبول</span>
+        <span class="status-pending">⏳ ${pendN} قيد المراجعة</span>
+        <span class="status-rejected">❌ ${rejN} مرفوض</span>
       </div>
+      <p class="text-xs font-bold text-pine-800/50 mt-3">الأيتام المسجلون تحت هذا الحساب: <b>${rows.length}</b></p>
     </div>
-    <div class="bg-white rounded-3xl shadow-card p-6 sm:p-8">
-      <h4 class="font-black text-pine-800 mb-3">📋 بيانات الملف</h4>
-      ${[['الوصي',r.guardian_name+' ('+(r.guardian_rel||'')+')'],['جوال الوصي',r.phone_primary],['السكن الأصلي',r.original_address],['عنوان النزوح',r.displacement_address],['الحالة الصحية',r.health_status+(r.health_note?' — '+r.health_note:'')],['تاريخ التقديم',new Date(r.created_at).toLocaleString('ar')]].map(([k,v])=>`<div class="kv"><span>${k}</span><b>${esc(v)}</b></div>`).join('')}
-      <a class="btn-wa w-full justify-center mt-5" target="_blank" href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('السلام عليكم، أنا '+r.orphan_name+' — هوية '+r.orphan_id+'، أستفسر عن حالة طلب الكفالة')}">استفسار عبر واتساب ✆</a>
-    </div>`;
+    ${rows.map(guardianOrphanCard).join('')}`;
   window.scrollTo({top:0});
+}
+function guardianOrphanCard(r){
+  const stBox = r.status==='approved'? '<span class="status-approved">✅ تم قبول التسجيل — الاسم مسجل لدينا، وعند توفر الدعم نرشحه للكفالة</span>' : r.status==='rejected'? '<span class="status-rejected">❌ لم يتم القبول — تواصل معنا واتساب للاستفسار</span>' : '<span class="status-pending">⏳ قيد المراجعة — سنرد قريباً</span>';
+  const step = r.status==='approved'? 3 : r.status==='rejected'? 3 : 2;
+  return `
+    <div class="bg-white rounded-3xl shadow-card p-6 sm:p-7 mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-14 h-14 rounded-full bg-pine-800 text-gold-light text-2xl font-black flex items-center justify-center">${esc((r.orphan_name||'ي').trim()[0]||'ي')}</div>
+          <div>
+            <h3 class="text-xl font-black text-pine-800">${esc(r.orphan_name)}</h3>
+            <p class="text-xs font-bold text-pine-800/50">هوية: <bdi dir="ltr">${esc(r.orphan_id)}</bdi> • ميلاد: <bdi dir="ltr">${esc(r.orphan_birth)}</bdi></p>
+          </div>
+        </div>
+        <div>${statusLabel(r.status)}</div>
+      </div>
+      <div class="mt-3 text-center">${stBox}</div>
+      <div class="timeline text-right max-w-sm mx-auto mt-5">
+        <div class="t-step done">📝 تم استلام طلب الكفالة</div>
+        <div class="t-step ${step>=2?'done':''}">🔍 ${r.status==='pending'?'الطلب قيد المراجعة الآن':'تمت مراجعة الطلب'}</div>
+        <div class="t-step ${r.status==='approved'?'done':r.status==='rejected'?'now':''}">${r.status==='approved'?'🎉 تم قبول التسجيل — نرشح الاسم عند توفر الدعم':r.status==='rejected'?'تم اتخاذ قرار — تواصل معنا':'⏳ القرار النهائي قريباً'}</div>
+      </div>
+      <details class="mt-4">
+        <summary class="cursor-pointer font-bold text-sm text-pine-800 select-none">📋 عرض بيانات الملف</summary>
+        <div class="mt-3">
+          ${[['الجنس',r.orphan_gender||'-'],['صلة القرابة',r.guardian_rel||'-'],['السكن الأصلي',r.original_address||'-'],['عنوان النزوح',r.displacement_address||'-'],['الحالة الصحية',(r.health_status||'-')+(r.health_note?' — '+r.health_note:'')],['تاريخ التقديم',new Date(r.created_at).toLocaleString('ar')]].map(([k,v])=>`<div class="kv"><span>${k}</span><b>${esc(v)}</b></div>`).join('')}
+        </div>
+      </details>
+      <a class="btn-wa w-full justify-center mt-4" target="_blank" href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('السلام عليكم، أنا '+r.guardian_name+' — وصي '+r.orphan_name+' (هوية '+r.orphan_id+')، أستفسر عن حالة طلب الكفالة')}">استفسار عبر واتساب ✆</a>
+    </div>`;
 }
 
 /* ---------- تبرع + واتساب ---------- */
@@ -714,10 +753,16 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       if(useSB){
         const { data:{session} } = await sb.auth.getSession();
         if(session && s?.type==='admin') enterAdmin();
-        else if(s?.type==='orphan' && !session){ const r=await dbGetRequest(s.id); if(r) enterOrphan(r); }
+        else if(s?.type==='guardian' && !session){
+          const { data } = await sb.rpc('fetch_guardian_requests',{gid:s.gid, gbd:s.gbd});
+          if(Array.isArray(data)&&data.length) enterGuardian(data);
+        }
       } else {
         if(s?.type==='admin') enterAdmin();
-        else if(s?.type==='orphan'){ const r=loadRequests().find(x=>x.orphan_id===s.id); if(r) enterOrphan(r); }
+        else if(s?.type==='guardian'){
+          const all=loadRequests().filter(r=>r.guardian_id===s.gid);
+          if(all.some(r=>r.guardian_birth===s.gbd)) enterGuardian(all);
+        }
       }
     }catch{}
   })();

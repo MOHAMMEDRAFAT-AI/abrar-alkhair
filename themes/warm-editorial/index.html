@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
@@ -57,13 +57,13 @@ tailwind.config = {
     <!-- يسار: الدخول -->
     <div class="justify-self-end flex items-center gap-2">
       <span id="authStateLabel" class="hidden lg:inline text-xs text-pine-800/70 font-semibold"></span>
-      <button onclick="openLogin('orphan')" class="btn-ghost hidden sm:inline-flex">دخول اليتيم</button>
+      <button onclick="openLogin('guardian')" class="btn-ghost hidden sm:inline-flex">دخول الوصي</button>
       <button onclick="openLogin('admin')" class="btn-solid">دخول المدير</button>
     </div>
   </div>
   <div id="mobileMenu" class="md:hidden hidden border-t border-pine-700/10 bg-cream px-6 py-4 flex flex-col gap-3 font-bold text-pine-800">
     <a href="#hero">الرئيسية</a><a href="#gallery">معرض الكفالة</a><a href="#kafaala">كفالة يتيم</a><a href="#contribute">ساهم معنا</a>
-    <button onclick="openLogin('orphan')" class="btn-ghost w-full">دخول اليتيم</button>
+    <button onclick="openLogin('guardian')" class="btn-ghost w-full">دخول الوصي</button>
   </div>
 </header>
 
@@ -142,7 +142,7 @@ tailwind.config = {
   <div class="max-w-4xl mx-auto px-5">
     <div class="text-center mb-8 reveal">
       <h2 class="sec-title">سجّل يتيماً <span class="ruqaa-note">واكفل أجراً عظيماً</span></h2>
-      <p class="text-pine-800/60 font-semibold mt-3">اضغط الزر لينسدل نموذج التسجيل. بعد الإرسال يُنشأ <b>حساب لليتيم تلقائياً</b>: الدخول برقم الهوية + تاريخ الميلاد ككلمة مرور.</p>
+      <p class="text-pine-800/60 font-semibold mt-3">اضغط الزر لينسدل نموذج التسجيل. بعد الإرسال يُنشأ <b>حساب واحد للوصي</b>: الدخول بهوية الوصي + تاريخ ميلاده، ويظهر تحته كل الأيتام المسجلين.</p>
     </div>
 
     <div class="reveal text-center mb-6">
@@ -199,7 +199,7 @@ tailwind.config = {
 
         <label class="agree"><input type="checkbox" required> أقر بأن جميع البيانات صحيحة، وأوافق على مراجعة المؤسسة للطلب والتواصل معي عبر الجوال.</label>
         <button class="btn-submit" type="submit" id="submitBtn">إرسال طلب الكفالة ←</button>
-        <p class="text-center text-xs text-pine-800/50 font-semibold mt-3">بعد الإرسال: رقم الهوية = اسم المستخدم &nbsp;•&nbsp; تاريخ الميلاد = كلمة المرور</p>
+        <p class="text-center text-xs text-pine-800/50 font-semibold mt-3">بعد الإرسال: هوية الوصي = اسم المستخدم &nbsp;•&nbsp; ميلاد الوصي = كلمة المرور — وحساب واحد يضم كل الأيتام المسجلين تحته</p>
       </form>
     </div>
 
@@ -207,9 +207,9 @@ tailwind.config = {
       <div class="text-5xl">🎉</div>
       <h3 class="text-2xl font-black text-pine-800">تم استلام طلبك بنجاح!</h3>
       <p class="font-semibold text-pine-800/70">حالة الطلب الآن: <b class="status-pending">قيد المراجعة ⏳</b></p>
-      <div class="creds"><div><span>اسم الدخول (رقم الهوية)</span><b id="sId" dir="ltr"></b></div><div><span>كلمة المرور (تاريخ الميلاد)</span><b id="sPass" dir="ltr"></b></div></div>
+      <div class="creds"><div><span>اسم الدخول (هوية الوصي)</span><b id="sId" dir="ltr"></b></div><div><span>كلمة المرور (ميلاد الوصي)</span><b id="sPass" dir="ltr"></b></div></div>
       <div class="flex flex-wrap justify-center gap-3 mt-4">
-        <button onclick="openLogin('orphan')" class="btn-solid">دخول حساب اليتيم ←</button>
+        <button onclick="openLogin('guardian')" class="btn-solid">دخول حساب الوصي ←</button>
         <button onclick="document.getElementById('kafaalaSuccess').classList.add('hidden')" class="btn-ghost">تسجيل طلب آخر</button>
       </div>
     </div>
@@ -266,14 +266,14 @@ tailwind.config = {
   </div>
 </main>
 
-<!-- ================= لوحة اليتيم ================= -->
-<main id="view-orphan" class="hidden min-h-screen bg-[#F2EFE6]">
+<!-- ================= لوحة الوصي ================= -->
+<main id="view-guardian" class="hidden min-h-screen bg-[#F2EFE6]">
   <div class="max-w-4xl mx-auto px-5 py-10">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-3xl font-black text-pine-800">🌙 حساب اليتيم</h2>
+      <h2 class="text-3xl font-black text-pine-800">🌙 حساب الوصي</h2>
       <div class="flex gap-2"><button onclick="logout()" class="btn-danger-soft text-xs">خروج ✕</button><button onclick="showHome()" class="btn-ghost text-xs">← الموقع</button></div>
     </div>
-    <div id="orphanCard"></div>
+    <div id="guardianPanel"></div>
   </div>
 </main>
 
@@ -306,13 +306,13 @@ tailwind.config = {
 <div id="loginModal" class="modal hidden">
   <div class="modal-card">
     <button onclick="closeLogin()" class="modal-x">✕</button>
-    <div id="loginOrphan">
-      <h3 class="text-2xl font-black text-pine-800 mb-1">🌙 دخول اليتيم</h3>
-      <p class="text-sm text-pine-800/60 font-bold mb-5">رقم الهوية + تاريخ الميلاد (كلمة المرور)</p>
-      <div class="field"><label>رقم هوية اليتيم</label><input id="l_orphan_id" inputmode="numeric" maxlength="9" placeholder="9 أرقام" dir="ltr"></div>
-      <div class="field mt-3"><label>تاريخ الميلاد (كلمة المرور)</label><input id="l_orphan_birth" type="date" dir="ltr"></div>
-      <p id="loginOrphanErr" class="err hidden"></p>
-      <button onclick="doOrphanLogin()" class="btn-submit mt-4">دخول ←</button>
+    <div id="loginGuardian">
+      <h3 class="text-2xl font-black text-pine-800 mb-1">🌙 دخول الوصي</h3>
+      <p class="text-sm text-pine-800/60 font-bold mb-5">هوية الوصي + تاريخ ميلاده (كلمة المرور) — حساب واحد لكل الأيتام</p>
+      <div class="field"><label>رقم هوية الوصي</label><input id="l_guardian_id" inputmode="numeric" maxlength="9" placeholder="9 أرقام" dir="ltr"></div>
+      <div class="field mt-3"><label>تاريخ ميلاد الوصي (كلمة المرور)</label><input id="l_guardian_birth" type="date" dir="ltr"></div>
+      <p id="loginGuardianErr" class="err hidden"></p>
+      <button onclick="doGuardianLogin()" class="btn-submit mt-4">دخول ←</button>
       <p class="text-xs text-center mt-3 text-pine-800/50 font-bold">ليس لديك حساب؟ <a href="#kafaala" onclick="closeLogin()" class="text-gold-dark underline">سجّل في الكفالة أولاً</a></p>
     </div>
     <div id="loginAdmin" class="hidden">

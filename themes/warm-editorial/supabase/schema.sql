@@ -59,12 +59,21 @@ drop policy if exists "admin_write_projects" on public.projects;
 create policy "admin_write_projects" on public.projects
   for all to authenticated using (true) with check (true);
 
--- 4) دالة دخول اليتيم (برقم الهوية + تاريخ الميلاد) — آمنة بدون كشف الجدول
-create or replace function public.fetch_request(oid text, bd date)
+-- 4) دالة دخول الوصي (برقم هويته + تاريخ ميلاده) — آمنة بدون كشف الجدول
+--    ترجع جميع الأيتام المسجلين تحت هذا الوصي وحالة كل يتيم على حدة.
+create or replace function public.fetch_guardian_requests(gid text, gbd date)
 returns setof public.requests
 language sql security definer set search_path = public
-as $$ select * from public.requests where orphan_id = oid and orphan_birth = bd limit 1; $$;
-grant execute on function public.fetch_request(text, date) to anon, authenticated;
+as $$
+  select * from public.requests
+  where guardian_id = gid
+    and exists (
+      select 1 from public.requests r2
+      where r2.guardian_id = gid and r2.guardian_birth = gbd
+    )
+  order by created_at asc;
+$$;
+grant execute on function public.fetch_guardian_requests(text, date) to anon, authenticated;
 
 -- 5) bucket تخزين صور السلايدر (أنشئه من Storage > New bucket باسم site مع Public)
 insert into storage.buckets (id, name, public)
