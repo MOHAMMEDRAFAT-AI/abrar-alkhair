@@ -225,26 +225,6 @@ tailwind.config = {
       <div class="flex gap-2"><button onclick="logout()" class="btn-danger-soft text-xs">تسجيل الخروج ✕</button><button onclick="showHome()" class="btn-ghost text-xs">← الموقع</button></div>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="adminStats"></div>
-    <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6 mb-6">
-      <h3 class="text-lg font-black text-pine-800 mb-1">🖼 المشاريع وصور السلايدر <small class="text-xs font-bold text-pine-800/50">(عدد غير محدود)</small></h3>
-      <p class="text-xs font-bold text-pine-800/50 mb-3">أضف مشاريع جديدة لاحقاً، وارفع صوراً لكل مشروع — تظهر فوراً في المعرض والشريط.</p>
-      <div id="adminProjects"></div>
-      <div class="grid sm:grid-cols-3 gap-2 mt-4">
-        <input id="newProjName" class="search-input" placeholder="اسم المشروع الجديد *">
-        <input id="newProjDesc" class="search-input" placeholder="وصف مختصر (اختياري)">
-        <button onclick="addProject()" class="btn-solid">+ إضافة مشروع</button>
-      </div>
-    </div>
-    <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6 mb-6">
-      <h3 class="text-lg font-black text-pine-800 mb-1">👥 إدارة المدراء</h3>
-      <p class="text-xs font-bold text-pine-800/50 mb-3">أضف مديراً ثانياً بالبريد وكلمة المرور — يدخل من نافذة «دخول المدير» بنفس الصلاحيات.</p>
-      <div id="adminList"></div>
-      <div class="grid sm:grid-cols-3 gap-2 mt-3">
-        <input id="newAdminEmail" type="email" class="search-input" placeholder="بريد المدير الجديد *" dir="ltr">
-        <input id="newAdminPass" type="password" class="search-input" placeholder="كلمة مرور (6 أحرف فأكثر) *" dir="ltr">
-        <button onclick="addAdmin()" class="btn-solid">+ إضافة مدير</button>
-      </div>
-    </div>
     <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6">
       <div class="flex flex-wrap gap-2 mb-4 items-center">
         <input id="adminSearch" oninput="onAdminSearch()" placeholder="🔍 بحث بالاسم أو الهوية أو الجوال..." class="search-input">
@@ -262,6 +242,26 @@ tailwind.config = {
       </div>
       <div class="overflow-x-auto" id="adminTableWrap"><table class="tbl"><thead><tr><th>اليتيم</th><th>الهوية</th><th>الميلاد</th><th>الوصي / الجوال</th><th>السكن</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="adminRows"></tbody></table></div>
       <div id="adminPager" class="pager"></div>
+    </div>
+    <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6 mt-6">
+      <h3 class="text-lg font-black text-pine-800 mb-1">🖼 المشاريع وصور السلايدر <small class="text-xs font-bold text-pine-800/50">(عدد غير محدود)</small></h3>
+      <p class="text-xs font-bold text-pine-800/50 mb-3">أضف مشاريع جديدة لاحقاً، وارفع صوراً لكل مشروع — تظهر فوراً في المعرض والشريط.</p>
+      <div id="adminProjects"></div>
+      <div class="grid sm:grid-cols-3 gap-2 mt-4">
+        <input id="newProjName" class="search-input" placeholder="اسم المشروع الجديد *">
+        <input id="newProjDesc" class="search-input" placeholder="وصف مختصر (اختياري)">
+        <button onclick="addProject()" class="btn-solid">+ إضافة مشروع</button>
+      </div>
+    </div>
+    <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6 mt-6">
+      <h3 class="text-lg font-black text-pine-800 mb-1">👥 إدارة المدراء</h3>
+      <p class="text-xs font-bold text-pine-800/50 mb-3">أضف مديراً ثانياً بالبريد وكلمة المرور — يدخل من نافذة «دخول المدير» بنفس الصلاحيات.</p>
+      <div id="adminList"></div>
+      <div class="grid sm:grid-cols-3 gap-2 mt-3">
+        <input id="newAdminEmail" type="email" class="search-input" placeholder="بريد المدير الجديد *" dir="ltr">
+        <input id="newAdminPass" type="password" class="search-input" placeholder="كلمة مرور (6 أحرف فأكثر) *" dir="ltr">
+        <button onclick="addAdmin()" class="btn-solid">+ إضافة مدير</button>
+      </div>
     </div>
   </div>
 </main>
