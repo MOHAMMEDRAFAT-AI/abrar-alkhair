@@ -187,6 +187,9 @@ body.bg-cream{ background:#F4EEE1 }
 /* ---------- فورم الكفالة: دفتر ---------- */
 .btn-accord{ background:var(--ink); color:var(--paper); font-weight:800; font-size:17px; padding:17px 40px; border-radius:14px; border:1.5px solid var(--ink); transition:.22s; display:inline-flex; gap:12px; align-items:center; font-family:'Noto Kufi Arabic',sans-serif }
 .btn-accord:hover{ transform:translate(-2px,-2px); box-shadow:6px 6px 0 rgba(185,138,47,.7) }
+.btn-accord:disabled{ opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; filter:grayscale(.35) }
+.form-closed-note{ display:inline-block; margin-top:16px; background:#fee2e2; color:#991b1b; border:1.5px solid #991b1b33; border-radius:14px; padding:13px 22px; font-weight:800; font-size:14px; line-height:1.8 }
+.form-closed-note.hidden{ display:none }
 .accord-icon{ background:var(--gold); color:var(--pine-deep); width:32px;height:32px; border-radius:50%; display:inline-flex;align-items:center;justify-content:center; transition:.4s }
 .open .accord-icon{ transform:rotate(180deg) }
 .accord-body{ max-height:0; overflow:hidden; transition:max-height .8s cubic-bezier(.4,0,.2,1) }

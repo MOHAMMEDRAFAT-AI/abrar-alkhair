@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- مؤسسة أبرار الخير — مخطط Supabase
 -- التنفيذ: الصق هذا الملف كاملاً في Supabase Dashboard > SQL Editor > Run
 -- ============================================================
@@ -39,13 +39,43 @@ create table if not exists public.projects (
   created_at timestamptz not null default now()
 );
 
--- 3) تفعيل RLS + السياسات
+-- 3) جدول الإعدادات العامة (إيقاف/استئناف استقبال الطلبات)
+create table if not exists public.settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+insert into public.settings (key, value)
+values ('submissions', '{"open": true}'::jsonb)
+on conflict (key) do nothing;
+
+-- 4) تفعيل RLS + السياسات
 alter table public.requests enable row level security;
 alter table public.projects enable row level security;
+alter table public.settings enable row level security;
+
+drop policy if exists "public_read_settings" on public.settings;
+create policy "public_read_settings" on public.settings
+  for select to anon, authenticated using (true);
+
+drop policy if exists "admin_write_settings" on public.settings;
+create policy "admin_write_settings" on public.settings
+  for all to authenticated using (true) with check (true);
+
+create or replace function public.submissions_open()
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select coalesce(
+    (select (value->>'open')::boolean from public.settings where key = 'submissions'),
+    true
+  );
+$$;
+grant execute on function public.submissions_open() to anon, authenticated;
 
 drop policy if exists "public_insert_requests" on public.requests;
 create policy "public_insert_requests" on public.requests
-  for insert to anon, authenticated with check (true);
+  for insert to anon, authenticated with check (public.submissions_open());
 
 drop policy if exists "admin_all_requests" on public.requests;
 create policy "admin_all_requests" on public.requests
@@ -59,7 +89,7 @@ drop policy if exists "admin_write_projects" on public.projects;
 create policy "admin_write_projects" on public.projects
   for all to authenticated using (true) with check (true);
 
--- 4) دالة دخول الوصي (برقم هويته + تاريخ ميلاده) — آمنة بدون كشف الجدول
+-- 5) دالة دخول الوصي (برقم هويته + تاريخ ميلاده) — آمنة بدون كشف الجدول
 --    ترجع جميع الأيتام المسجلين تحت هذا الوصي وحالة كل يتيم على حدة.
 create or replace function public.fetch_guardian_requests(gid text, gbd date)
 returns setof public.requests
@@ -75,7 +105,7 @@ as $$
 $$;
 grant execute on function public.fetch_guardian_requests(text, date) to anon, authenticated;
 
--- 5) bucket تخزين صور السلايدر (أنشئه من Storage > New bucket باسم site مع Public)
+-- 6) bucket تخزين صور السلايدر (أنشئه من Storage > New bucket باسم site مع Public)
 insert into storage.buckets (id, name, public)
 values ('site', 'site', true)
 on conflict (id) do update set public = true;
@@ -88,7 +118,7 @@ drop policy if exists "admin_write_site" on storage.objects;
 create policy "admin_write_site" on storage.objects
   for all to authenticated using (bucket_id = 'site') with check (bucket_id = 'site');
 
--- 6) بيانات البداية: مشروع كفالة اليتيم + صوره الحالية
+-- 7) بيانات البداية: مشروع كفالة اليتيم + صوره الحالية
 insert into public.projects (id, name, description, images) values
 ('kafala', 'كفالة اليتيم', 'كفالة شاملة لأيتام قطاع غزة',
  '[{"src":"assets/slide1.jpg","t":"من الألم ننهض","s":"لقاء توعوي لأمهات الأيتام"},
@@ -112,5 +142,5 @@ insert into public.projects (id, name, description, images) values
 )
 on conflict (id) do nothing;
 
--- 7) حساب المدير: أنشئه من Dashboard > Authentication > Add user (email + password)
+-- 8) حساب المدير: أنشئه من Dashboard > Authentication > Add user (email + password)
 --    ثم ادخل به من نافذة «دخول المدير» في الموقع.

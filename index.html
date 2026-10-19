@@ -150,9 +150,10 @@ tailwind.config = {
         <span id="toggleFormLabel">+ تسجيل يتيم جديد في الكفالة</span>
         <span id="toggleFormIcon" class="accord-icon">↓</span>
       </button>
-      <div class="flex justify-center gap-6 mt-4 text-sm font-bold text-pine-800/60">
+      <div id="formOpenInfo" class="flex justify-center gap-6 mt-4 text-sm font-bold text-pine-800/60">
         <span>📝 14 حقلاً مطلوباً</span><span>⚡ حساب فوري</span><span>🔒 بيانات محمية</span>
       </div>
+      <p id="formClosedNote" class="form-closed-note hidden">⏸ استقبال طلبات الكفالة متوقف مؤقتاً — يرجى المحاولة لاحقاً أو التواصل معنا عبر واتساب.</p>
     </div>
 
     <div id="kafaalaWrap" class="accord-body">
@@ -225,6 +226,13 @@ tailwind.config = {
       <div class="flex gap-2"><button onclick="logout()" class="btn-danger-soft text-xs">تسجيل الخروج ✕</button><button onclick="showHome()" class="btn-ghost text-xs">← الموقع</button></div>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="adminStats"></div>
+    <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6 mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h3 class="text-lg font-black text-pine-800 mb-1">📥 استقبال طلبات الكفالة</h3>
+        <p id="submissionsStatusText" class="text-xs font-bold text-pine-800/60">جارٍ التحقق…</p>
+      </div>
+      <button id="toggleSubmissionsBtn" onclick="toggleSubmissions()" class="btn-danger-soft text-sm" disabled>…</button>
+    </div>
     <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6">
       <div class="flex flex-wrap gap-2 mb-3 items-center">
         <input id="adminSearch" oninput="onAdminSearch()" placeholder="🔍 بحث بالاسم أو الهوية أو الجوال..." class="search-input">

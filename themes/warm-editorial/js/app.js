@@ -16,6 +16,81 @@ let visibleRows = [];
 const PAGE_SIZE = 50;
 let adminPage = 1, adminPages = 1, adminTotal = 0, adminReq = 0, adminSearchTimer = null;
 
+/* ---------- حالة استقبال الطلبات (إيقاف/استئناف من لوحة المدير) ---------- */
+const SUB_KEY = 'abrar_submissions_open_v1';
+let submissionsOpen = true;
+
+async function loadSubmissionsState(){
+  if(!useSB){
+    const v=localStorage.getItem(SUB_KEY);
+    submissionsOpen = v===null ? true : v==='1';
+  } else {
+    try{
+      const { data, error } = await sb.from('settings').select('value').eq('key','submissions').maybeSingle();
+      if(error) throw error;
+      if(data && data.value && typeof data.value.open==='boolean') submissionsOpen=data.value.open;
+    }catch(e){
+      console.warn('تعذر قراءة حالة استقبال الطلبات:', e?.message||e);
+      submissionsOpen=true;
+    }
+  }
+  applySubmissionsState();
+}
+function closeKafaalaForm(){
+  document.getElementById('kafaalaWrap')?.classList.remove('open');
+  document.getElementById('toggleFormBtn')?.classList.remove('open');
+}
+function applySubmissionsState(){
+  const btn=document.getElementById('toggleFormBtn');
+  const lbl=document.getElementById('toggleFormLabel');
+  const icon=document.getElementById('toggleFormIcon');
+  if(!submissionsOpen) closeKafaalaForm();
+  if(btn){
+    btn.disabled=!submissionsOpen;
+    btn.classList.toggle('is-closed', !submissionsOpen);
+    btn.setAttribute('aria-disabled', String(!submissionsOpen));
+  }
+  if(lbl) lbl.textContent = submissionsOpen ? '+ تسجيل يتيم جديد في الكفالة' : '⏸ استقبال الطلبات متوقف مؤقتاً';
+  if(icon) icon.textContent = submissionsOpen ? '↓' : '⏸';
+  document.getElementById('formOpenInfo')?.classList.toggle('hidden', !submissionsOpen);
+  document.getElementById('formClosedNote')?.classList.toggle('hidden', submissionsOpen);
+  const ab=document.getElementById('toggleSubmissionsBtn');
+  const st=document.getElementById('submissionsStatusText');
+  if(ab){
+    ab.disabled=false;
+    ab.textContent = submissionsOpen ? '⏸ إيقاف استقبال الطلبات' : '▶ استئناف استقبال الطلبات';
+    ab.classList.toggle('btn-danger-soft', submissionsOpen);
+    ab.classList.toggle('btn-solid', !submissionsOpen);
+  }
+  if(st) st.innerHTML = submissionsOpen
+    ? '<span class="pill approved">✅ الاستقبال مفتوح</span> الطلبات تُستقبل الآن.'
+    : '<span class="pill rejected">⏸ متوقف مؤقتاً</span> لن يتمكن الزوار من التسجيل حتى إعادة التشغيل.';
+}
+async function toggleSubmissions(){
+  const next=!submissionsOpen;
+  if(!confirm(next?'إعادة فتح استقبال الطلبات؟':'إيقاف استقبال الطلبات مؤقتاً؟ لن يتمكن الزوار من التسجيل.')) return;
+  const ab=document.getElementById('toggleSubmissionsBtn'); if(ab) ab.disabled=true;
+  try{
+    if(!useSB){
+      localStorage.setItem(SUB_KEY, next?'1':'0');
+    } else {
+      const { error } = await sb.from('settings').upsert(
+        { key:'submissions', value:{open:next}, updated_at:new Date().toISOString() },
+        { onConflict:'key' }
+      );
+      if(error) throw error;
+    }
+    submissionsOpen=next;
+    applySubmissionsState();
+    toast(next?'✅ تم استئناف استقبال الطلبات':'⏸ تم إيقاف استقبال الطلبات مؤقتاً');
+  }catch(e){
+    if(ab) ab.disabled=false;
+    if(e?.code==='42P01' || /does not exist/i.test(e?.message||''))
+      return toast('⚠️ نفّذ ملف supabase/submissions-toggle.sql أولاً');
+    toast('⚠️ تعذر حفظ الحالة: '+(e?.message||e));
+  }
+}
+
 /* ---------- تخزين الطلبات ---------- */
 function loadRequests(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch{ return []; } }
 function saveRequests(r){ localStorage.setItem(LS_KEY, JSON.stringify(r)); }
@@ -24,7 +99,14 @@ function saveRequests(r){ localStorage.setItem(LS_KEY, JSON.stringify(r)); }
 async function dbAddRequest(d){
   if(!useSB){ const all=loadRequests(); all.unshift(d); saveRequests(all); return true; }
   const { error } = await sb.from('requests').insert([{...d, status:'pending', created_at:new Date().toISOString()}]);
-  if(error){ toast('⚠️ تعذر إرسال الطلب: '+error.message); return false; }
+  if(error){
+    if(/row-level security/i.test(error.message||'')){
+      submissionsOpen=false; applySubmissionsState();
+      toast('⏸ استقبال الطلبات متوقف مؤقتاً — يرجى المحاولة لاحقاً');
+      return false;
+    }
+    toast('⚠️ تعذر إرسال الطلب: '+error.message); return false;
+  }
   return true;
 }
 async function dbGetRequest(id){
@@ -53,16 +135,18 @@ function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&
 
 /* ---------- أكورديون الفورم ---------- */
 function toggleKafaalaForm(force){
+  if(!submissionsOpen && force!==false){ toast('⏸ استقبال الطلبات متوقف مؤقتاً حالياً'); return; }
   const w=document.getElementById('kafaalaWrap'), btn=document.getElementById('toggleFormBtn');
   const open = force!==undefined? force : !w.classList.contains('open');
   w.classList.toggle('open', open); btn.classList.toggle('open', open);
-  document.getElementById('toggleFormLabel').textContent = open? '− إغلاق نموذج التسجيل' : '+ تسجيل يتيم جديد في الكفالة';
+  document.getElementById('toggleFormLabel').textContent = open? '− إغلاق نموذج التسجيل' : (submissionsOpen?'+ تسجيل يتيم جديد في الكفالة':'⏸ استقبال الطلبات متوقف مؤقتاً');
   if(open) setTimeout(()=>w.scrollIntoView({behavior:'smooth',block:'start'}),150);
 }
 
 /* ---------- إرسال طلب الكفالة ---------- */
 async function submitKafaala(e){
   e.preventDefault();
+  if(!submissionsOpen) return toast('⏸ استقبال الطلبات متوقف مؤقتاً — يرجى المحاولة لاحقاً'), false;
   const f=e.target, fd=new FormData(f);
   const d=Object.fromEntries(fd.entries());
   // تحقق
@@ -146,6 +230,7 @@ function enterAdmin(){
   document.getElementById('view-guardian').classList.add('hidden');
   document.getElementById('view-admin').classList.remove('hidden');
   document.getElementById('authStateLabel').textContent='🛡️ مسجل كمدير';
+  loadSubmissionsState();
   renderAdmin(); renderProjectsAdmin(); renderAdmins(); window.scrollTo({top:0});
 }
 function setFilter(f){
@@ -837,6 +922,7 @@ function initReveal(){
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
+  await loadSubmissionsState();
   seedProjects(); await refreshProjects(); renderStrip();
   initReveal(); initHeroTitle(); initSpot(); buildGallery(); initGalleryFX(); initMouseFX(); initTiltBand();
   document.getElementById('topClock').textContent=new Date().toLocaleDateString('ar-PS',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
