@@ -308,8 +308,13 @@ tailwind.config = {
     <button onclick="closeLogin()" class="modal-x">✕</button>
     <div id="loginGuardian">
       <h3 class="text-2xl font-black text-pine-800 mb-1">🌙 دخول الوصي</h3>
-      <p class="text-sm text-pine-800/60 font-bold mb-5">هوية الوصي + تاريخ ميلاده (كلمة المرور) — حساب واحد لكل الأيتام</p>
-      <div class="field"><label>رقم هوية الوصي</label><input id="l_guardian_id" inputmode="numeric" maxlength="9" placeholder="9 أرقام" dir="ltr"></div>
+      <p class="text-sm text-pine-800/60 font-bold mb-4">حساب واحد للوصي يضم كل الأيتام المسجلين تحته</p>
+      <div class="login-notice">
+        <b>📌 تنبيه مهم</b>
+        <p>تم تغيير طريقة الدخول: الدخول الآن <b>بهوية الوصي وتاريخ ميلاده</b>، وليس بهوية اليتيم نفسه.</p>
+        <p>إذا كنت مسجلاً سابقاً بحساب اليتيم، ادخل برقم هوية الوصي وتاريخ ميلاده، وستجد جميع الأيتام المسجلين تحت حسابك.</p>
+      </div>
+      <div class="field mt-4"><label>رقم هوية الوصي</label><input id="l_guardian_id" inputmode="numeric" maxlength="9" placeholder="9 أرقام" dir="ltr"></div>
       <div class="field mt-3"><label>تاريخ ميلاد الوصي (كلمة المرور)</label><input id="l_guardian_birth" type="date" dir="ltr"></div>
       <p id="loginGuardianErr" class="err hidden"></p>
       <button onclick="doGuardianLogin()" class="btn-submit mt-4">دخول ←</button>
