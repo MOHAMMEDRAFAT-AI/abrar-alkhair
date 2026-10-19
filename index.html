@@ -226,7 +226,7 @@ tailwind.config = {
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="adminStats"></div>
     <div class="bg-white rounded-3xl shadow-card p-4 sm:p-6">
-      <div class="flex flex-wrap gap-2 mb-4 items-center">
+      <div class="flex flex-wrap gap-2 mb-3 items-center">
         <input id="adminSearch" oninput="onAdminSearch()" placeholder="🔍 بحث بالاسم أو الهوية أو الجوال..." class="search-input">
         <div class="flex gap-2 text-sm font-bold">
           <button onclick="setFilter('all')" data-f="all" class="flt active">الكل</button>
@@ -238,6 +238,72 @@ tailwind.config = {
           <button onclick="bulkSetStatus('approved')" class="rowbtn ok">✓ قبول الكل</button>
           <button onclick="bulkSetStatus('rejected')" class="rowbtn no">✕ رفض الكل</button>
           <button onclick="exportCSV()" class="btn-ghost text-xs">⬇ تصدير CSV</button>
+        </div>
+      </div>
+      <div class="admin-filters">
+        <div class="af-head"><b>⚙️ فلاتر متقدمة</b><button onclick="resetAdminFilters()" class="btn-ghost text-xs">↺ مسح الفلاتر</button></div>
+        <div class="af-grid">
+          <label class="af"><span>الترتيب</span>
+            <select id="adminSort" onchange="applyFilters()">
+              <option value="pending">⏳ قيد المراجعة أولاً (افتراضي)</option>
+              <option value="newest">🕒 الأحدث تسجيلاً</option>
+              <option value="oldest">🕐 الأقدم تسجيلاً</option>
+              <option value="name_asc">🔤 الاسم: أ ← ي</option>
+              <option value="name_desc">🔤 الاسم: ي ← أ</option>
+              <option value="guardian_asc">👤 الوصي: أ ← ي</option>
+              <option value="guardian_desc">👤 الوصي: ي ← أ</option>
+              <option value="birth_asc">🎂 الأكبر سناً</option>
+              <option value="birth_desc">🎂 الأصغر سناً</option>
+            </select>
+          </label>
+          <label class="af"><span>الوصي (اسم أو هوية)</span>
+            <input id="filterGuardian" oninput="onFilterInput()" placeholder="ابحث باسم أو هوية الوصي">
+          </label>
+          <label class="af"><span>السكن / النزوح</span>
+            <input id="filterAddress" oninput="onFilterInput()" placeholder="مثال: دير البلح">
+          </label>
+          <label class="af"><span>الجنس</span>
+            <select id="filterGender" onchange="applyFilters()">
+              <option value="">الكل</option><option>ذكر</option><option>أنثى</option>
+            </select>
+          </label>
+          <label class="af"><span>الحالة الصحية</span>
+            <select id="filterHealth" onchange="applyFilters()">
+              <option value="">الكل</option>
+              <option>سليم (لا أمراض)</option>
+              <option>مرض مزمن (سكري / ربو / قلب ...)</option>
+              <option>إعاقة حركية</option>
+              <option>إعاقة سمعية / بصرية</option>
+              <option>سوء تغذية</option>
+              <option>إصابة حرب</option>
+              <option>أخرى</option>
+            </select>
+          </label>
+          <label class="af"><span>صلة القرابة</span>
+            <select id="filterRel" onchange="applyFilters()">
+              <option value="">الكل</option>
+              <option>الأم</option><option>الجد / الجدة</option><option>العم / العمة</option>
+              <option>الخال / الخالة</option><option>أخ / أخت</option><option>أخرى</option>
+            </select>
+          </label>
+          <label class="af"><span>سبب الوفاة</span>
+            <select id="filterDeath" onchange="applyFilters()">
+              <option value="">الكل</option>
+              <option>استشهاد - حرب</option><option>مرض</option><option>حادث</option><option>أخرى</option>
+            </select>
+          </label>
+          <label class="af"><span>ميلاد اليتيم: من</span>
+            <input id="filterBirthFrom" type="date" onchange="applyFilters()">
+          </label>
+          <label class="af"><span>ميلاد اليتيم: إلى</span>
+            <input id="filterBirthTo" type="date" onchange="applyFilters()">
+          </label>
+          <label class="af"><span>تاريخ التسجيل: من</span>
+            <input id="filterFrom" type="date" onchange="applyFilters()">
+          </label>
+          <label class="af"><span>تاريخ التسجيل: إلى</span>
+            <input id="filterTo" type="date" onchange="applyFilters()">
+          </label>
         </div>
       </div>
       <div class="overflow-x-auto" id="adminTableWrap"><table class="tbl"><thead><tr><th>اليتيم</th><th>الهوية</th><th>الميلاد</th><th>الوصي / الجوال</th><th>السكن</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="adminRows"></tbody></table></div>

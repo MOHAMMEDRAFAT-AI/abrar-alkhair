@@ -150,26 +150,79 @@ function enterAdmin(){
 }
 function setFilter(f){ currentFilter=f; adminPage=1; document.querySelectorAll('.flt').forEach(b=>b.classList.toggle('active', b.dataset.f===f)); renderAdmin(); }
 function onAdminSearch(){ adminPage=1; clearTimeout(adminSearchTimer); adminSearchTimer=setTimeout(()=>renderAdmin(),350); }
+function onFilterInput(){ adminPage=1; clearTimeout(adminSearchTimer); adminSearchTimer=setTimeout(()=>renderAdmin(),350); }
+function applyFilters(){ adminPage=1; renderAdmin(); }
+function resetAdminFilters(){
+  ['filterGuardian','filterAddress','filterFrom','filterTo','filterBirthFrom','filterBirthTo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['filterGender','filterHealth','filterRel','filterDeath'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const s=document.getElementById('adminSort'); if(s) s.value='pending';
+  applyFilters();
+}
 function fmtNum(n){ return (+n||0).toLocaleString('en-US'); }
-function adminScope(){ return { filter: currentFilter, q: (document.getElementById('adminSearch').value||'').trim() }; }
+function adminScope(){
+  const v=id=>{ const el=document.getElementById(id); return el?el.value.trim():''; };
+  return {
+    filter: currentFilter,
+    q: v('adminSearch'),
+    guardian: v('filterGuardian'),
+    address: v('filterAddress'),
+    gender: v('filterGender'),
+    health: v('filterHealth'),
+    rel: v('filterRel'),
+    death: v('filterDeath'),
+    birthFrom: v('filterBirthFrom'),
+    birthTo: v('filterBirthTo'),
+    from: v('filterFrom'),
+    to: v('filterTo'),
+    sort: v('adminSort')||'pending'
+  };
+}
 function adminTerm(q){ return String(q||'').replace(/[,()%\\]/g,' ').trim(); }
-/* تبني استعلاماً مقيّداً بالفلتر والبحث الحاليين (إن وُجد حالة معيّنة يُقيَّد بها بدل الفلتر) */
+/* يبني استعلاماً مقيّداً بكل الفلاتر الحالية (الحالة + البحث + الوصي + السكن + الجنس + الصحة + التاريخ) */
 function withScope(qy, sc, statusOverride){
   const st = statusOverride!==undefined ? statusOverride : (sc.filter!=='all'? sc.filter : null);
   if(st==='nonpending') qy=qy.neq('status','pending');
   else if(st) qy=qy.eq('status',st);
+  const groups=[];
   const term=adminTerm(sc.q);
-  if(term) qy=qy.or(`orphan_name.ilike.%${term}%,orphan_id.ilike.%${term}%,phone_primary.ilike.%${term}%,guardian_name.ilike.%${term}%,guardian_id.ilike.%${term}%`);
+  if(term) groups.push(`or(orphan_name.ilike.%${term}%,orphan_id.ilike.%${term}%,phone_primary.ilike.%${term}%,guardian_name.ilike.%${term}%,guardian_id.ilike.%${term}%)`);
+  const g=adminTerm(sc.guardian);
+  if(g) groups.push(`or(guardian_name.ilike.%${g}%,guardian_id.ilike.%${g}%)`);
+  const a=adminTerm(sc.address);
+  if(a) groups.push(`or(original_address.ilike.%${a}%,displacement_address.ilike.%${a}%)`);
+  if(groups.length===1) qy=qy.or(groups[0].slice(3,-1));
+  else if(groups.length>1) qy=qy.or(`and(${groups.join(',')})`);
+  if(sc.gender) qy=qy.eq('orphan_gender', sc.gender);
+  if(sc.health) qy=qy.eq('health_status', sc.health);
+  if(sc.rel) qy=qy.eq('guardian_rel', sc.rel);
+  if(sc.death) qy=qy.eq('death_cause', sc.death);
+  if(sc.birthFrom) qy=qy.gte('orphan_birth', sc.birthFrom);
+  if(sc.birthTo) qy=qy.lte('orphan_birth', sc.birthTo);
+  if(sc.from) qy=qy.gte('created_at', sc.from);
+  if(sc.to) qy=qy.lte('created_at', sc.to+'T23:59:59.999');
   return qy;
+}
+function applySort(qy, sort){
+  switch(sort){
+    case 'newest': return qy.order('created_at',{ascending:false}).order('id',{ascending:false});
+    case 'oldest': return qy.order('created_at',{ascending:true}).order('id',{ascending:true});
+    case 'name_asc': return qy.order('orphan_name',{ascending:true}).order('id',{ascending:true});
+    case 'name_desc': return qy.order('orphan_name',{ascending:false}).order('id',{ascending:false});
+    case 'guardian_asc': return qy.order('guardian_name',{ascending:true}).order('id',{ascending:true});
+    case 'guardian_desc': return qy.order('guardian_name',{ascending:false}).order('id',{ascending:false});
+    case 'birth_asc': return qy.order('orphan_birth',{ascending:true}).order('id',{ascending:true});
+    case 'birth_desc': return qy.order('orphan_birth',{ascending:false}).order('id',{ascending:false});
+    default: return qy.order('created_at',{ascending:false}).order('id',{ascending:false});
+  }
 }
 async function adminCount(sc, statusOverride){
   const { count, error } = await withScope(sb.from('requests').select('*',{count:'exact',head:true}), sc, statusOverride);
   if(error) throw error;
   return count||0;
 }
-async function adminFetchRows(sc, statusOverride, from, to){
-  const { data, error } = await withScope(sb.from('requests').select('*'), sc, statusOverride)
-    .order('created_at',{ascending:false}).range(from,to);
+async function adminFetchRows(sc, statusOverride, from, to, sortOverride){
+  const qy=withScope(sb.from('requests').select('*'), sc, statusOverride);
+  const { data, error } = await applySort(qy, sortOverride||sc.sort).range(from,to);
   if(error) throw error;
   return data||[];
 }
@@ -189,18 +242,49 @@ async function adminStatsData(){
   if(err) throw err;
   return { total:t.count||0, pending:p.count||0, approved:a.count||0, rejected:r.count||0 };
 }
-/* صفحة واحدة من الطلبات: قيد المراجعة أولاً ثم الأحدث — عبر استعلامات مقسّمة عند الحد */
+/* صفحة واحدة من الطلبات: تطبيق كل الفلاتر ثم الترتيب المختار (قيد المراجعة أولاً افتراضياً) */
+function localFiltered(sc){
+  let rows=loadRequests();
+  if(sc.filter!=='all') rows=rows.filter(r=>r.status===sc.filter);
+  const has=(v,t)=>!t||String(v||'').toLowerCase().includes(t.toLowerCase());
+  if(sc.q) rows=rows.filter(r=>has([r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name,r.guardian_id].join(' '),sc.q));
+  if(sc.guardian) rows=rows.filter(r=>has(r.guardian_name+' '+r.guardian_id,sc.guardian));
+  if(sc.address) rows=rows.filter(r=>has((r.original_address||'')+' '+(r.displacement_address||''),sc.address));
+  if(sc.gender) rows=rows.filter(r=>r.orphan_gender===sc.gender);
+  if(sc.health) rows=rows.filter(r=>r.health_status===sc.health);
+  if(sc.rel) rows=rows.filter(r=>r.guardian_rel===sc.rel);
+  if(sc.death) rows=rows.filter(r=>r.death_cause===sc.death);
+  if(sc.birthFrom) rows=rows.filter(r=>String(r.orphan_birth||'')>=sc.birthFrom);
+  if(sc.birthTo) rows=rows.filter(r=>String(r.orphan_birth||'')<=sc.birthTo);
+  if(sc.from) rows=rows.filter(r=>String(r.created_at||'')>=sc.from);
+  if(sc.to) rows=rows.filter(r=>String(r.created_at||'')<=sc.to+'T23:59:59.999');
+  return rows;
+}
+function localSort(rows, sort){
+  const pendingFirst=(a,b)=>(a.status==='pending'?0:1)-(b.status==='pending'?0:1);
+  const by=(f,dir)=> (a,b)=>String(a[f]||'').localeCompare(String(b[f]||''),'ar')*dir;
+  const list=rows.slice();
+  switch(sort){
+    case 'oldest': list.sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))); break;
+    case 'name_asc': list.sort(by('orphan_name',1)); break;
+    case 'name_desc': list.sort(by('orphan_name',-1)); break;
+    case 'guardian_asc': list.sort(by('guardian_name',1)); break;
+    case 'guardian_desc': list.sort(by('guardian_name',-1)); break;
+    case 'birth_asc': list.sort(by('orphan_birth',1)); break;
+    case 'birth_desc': list.sort(by('orphan_birth',-1)); break;
+    case 'newest': list.sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))); break;
+    default: list.sort((a,b)=>pendingFirst(a,b)||String(b.created_at||'').localeCompare(String(a.created_at||'')));
+  }
+  return list;
+}
 async function adminFetchPage(sc){
   const from=(adminPage-1)*PAGE_SIZE, to=from+PAGE_SIZE-1;
   if(!useSB){
-    let rows=loadRequests();
-    if(sc.filter!=='all') rows=rows.filter(r=>r.status===sc.filter);
-    const term=sc.q;
-    if(term) rows=rows.filter(r=>[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name,r.guardian_id].join(' ').includes(term));
-    rows.sort((a,b)=>(a.status==='pending'?0:1)-(b.status==='pending'?0:1)||String(b.created_at||'').localeCompare(String(a.created_at||'')));
+    const rows=localSort(localFiltered(sc), sc.sort);
     return { total:rows.length, rows:rows.slice(from,to+1) };
   }
-  if(sc.filter!=='all') return { total:await adminCount(sc), rows:await adminFetchRows(sc, undefined, from, to) };
+  if(sc.filter!=='all' || sc.sort!=='pending')
+    return { total:await adminCount(sc), rows:await adminFetchRows(sc, undefined, from, to) };
   const [total, pend]=await Promise.all([adminCount(sc), adminCount(sc,'pending')]);
   let rows=[];
   if(from<pend) rows=rows.concat(await adminFetchRows(sc,'pending',from,Math.min(to,pend-1)));
@@ -271,20 +355,20 @@ async function setStatus(id, st){
 async function bulkSetStatus(st){
   const sc=adminScope();
   const label = st==='approved'?'قبول':'رفض';
-  const inScope=(r,term)=> (sc.filter==='all'||r.status===sc.filter) && r.status!==st && (!term||[r.orphan_name,r.orphan_id,r.phone_primary,r.guardian_name,r.guardian_id].join(' ').includes(term));
   if(!useSB){
-    const all=loadRequests(), term=sc.q;
-    const affected=all.filter(r=>inScope(r,term)).length;
+    const rows0=localFiltered(sc);
+    const affected=rows0.filter(r=>r.status!==st).length;
     if(!affected) return toast('⚠️ لا توجد طلبات جديدة مطابقة');
-    if(!confirm(`هل تريد ${label} جميع الطلبات المطابقة للفلتر الحالي (${fmtNum(affected)})؟`)) return;
-    all.forEach(r=>{ if(inScope(r,term)) r.status=st; });
+    if(!confirm(`هل تريد ${label} جميع الطلبات المطابقة للفلاتر الحالية (${fmtNum(affected)})؟`)) return;
+    const all=loadRequests(), ids=new Set(rows0.filter(r=>r.status!==st).map(r=>r.orphan_id));
+    all.forEach(r=>{ if(ids.has(r.orphan_id)) r.status=st; });
     saveRequests(all); renderAdmin(); toast(`✅ تم ${label} ${fmtNum(affected)} طلب`); return;
   }
   let affected=0;
   try{ affected=Math.max(0, (await adminCount(sc)) - (await adminCount(sc,st))); }
   catch(e){ return toast('⚠️ تعذر حساب الطلبات: '+(e?.message||e)); }
   if(!affected) return toast('⚠️ لا توجد طلبات جديدة مطابقة');
-  if(!confirm(`هل تريد ${label} جميع الطلبات المطابقة للفلتر الحالي (${fmtNum(affected)})؟`)) return;
+  if(!confirm(`هل تريد ${label} جميع الطلبات المطابقة للفلاتر الحالية (${fmtNum(affected)})؟`)) return;
   toast('⏳ جارٍ تحديث الطلبات...');
   const { error } = await withScope(sb.from('requests').update({status:st}), sc).neq('status', st);
   if(error) return toast('⚠️ تعذر التحديث: '+error.message);

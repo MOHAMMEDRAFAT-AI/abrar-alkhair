@@ -238,6 +238,16 @@ body.bg-cream{ background:#F4EEE1 }
 .t-step.done{ color:var(--pine) } .t-step.done::before{ background:#22c55e; box-shadow:0 0 0 2px #22c55e } .t-step.now{ color:#92400e } .t-step.now::before{ background:#f59e0b; box-shadow:0 0 0 2px #f59e0b; animation:blink 1.5s infinite }
 .kv{ display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px dashed #13201922; font-size:14px } .kv span{ color:#13201977; font-weight:600 } .kv b{ color:var(--pine); text-align:left }
 
+/* ---------- فلاتر لوحة المدير ---------- */
+.admin-filters{ background:#F4EEE1; border:1.5px solid #13201922; border-radius:14px; padding:12px 14px; margin-bottom:16px }
+.af-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px }
+.af-head b{ font-size:13px; color:var(--pine); font-family:'Noto Kufi Arabic',sans-serif }
+.af-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px }
+.af{ display:flex; flex-direction:column; gap:5px }
+.af span{ font-size:11px; font-weight:700; color:#13201999 }
+.af input,.af select{ border:1.5px solid #13201933; border-radius:9px; padding:9px 12px; font-weight:600; font-family:inherit; font-size:13px; background:#fffdf6; color:var(--ink) }
+.af input:focus,.af select:focus{ outline:none; border-color:var(--clay) }
+
 /* ---------- ترقيم صفحات لوحة المدير ---------- */
 .pager{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-top:16px }
 .pager-info{ font-size:12px; font-weight:700; color:#13201988 }
