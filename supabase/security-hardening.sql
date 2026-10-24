@@ -75,6 +75,9 @@ create index if not exists idx_guardian_login_attempts_target
 -- دالة دخول الوصي المحصنة:
 -- 1. تقييد المحاولات (حد أقصى 5 محاولات خاطئة خلال 15 دقيقة لكل هوية)
 -- 2. إخفاء البيانات السرية (عدم إرجاع تاريخ ميلاد الوصي أو هوية الأب في الرد)
+-- 3. إسقاط الدالة السابقة أولاً لأن نوع الإرجاع تغير (حل خطأ 42P13)
+drop function if exists public.fetch_guardian_requests(text, date);
+
 create or replace function public.fetch_guardian_requests(gid text, gbd date)
 returns table (
   id bigint,
@@ -115,7 +118,7 @@ begin
     raise exception 'تم تجاوز الحد الأقصى للمحاولات (5 محاولات). يرجى الانتظار 15 دقيقة قبل المحاولة مجدداً.';
   end if;
 
-  -- فحص صحة بيانات الدخول
+  -- فحص صحة بيانات الدخول (رقم الهوية + تاريخ الميلاد)
   if not exists (
     select 1 from public.requests r
     where r.guardian_id = v_clean_gid and r.guardian_birth = gbd
@@ -156,26 +159,27 @@ grant execute on function public.fetch_guardian_requests(text, date) to anon, au
 
 -- ------------------------------------------------------------
 -- 4) قيود التحقق لمنع الطلبات العشوائية (Validation Constraints)
+-- تُضاف بـ NOT VALID لضمان عدم فشل الاستعلام في حال وجود بيانات تجريبية قديمة
 -- ------------------------------------------------------------
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'chk_requests_orphan_id') then
     alter table public.requests add constraint chk_requests_orphan_id 
-      check (length(regexp_replace(orphan_id, '\D', '', 'g')) >= 9);
+      check (length(regexp_replace(orphan_id, '\D', '', 'g')) >= 9) not valid;
   end if;
 
   if not exists (select 1 from pg_constraint where conname = 'chk_requests_guardian_id') then
     alter table public.requests add constraint chk_requests_guardian_id 
-      check (length(regexp_replace(guardian_id, '\D', '', 'g')) >= 9);
+      check (length(regexp_replace(guardian_id, '\D', '', 'g')) >= 9) not valid;
   end if;
 
   if not exists (select 1 from pg_constraint where conname = 'chk_requests_phone') then
     alter table public.requests add constraint chk_requests_phone 
-      check (length(regexp_replace(phone_primary, '\D', '', 'g')) >= 9);
+      check (length(regexp_replace(phone_primary, '\D', '', 'g')) >= 9) not valid;
   end if;
 
   if not exists (select 1 from pg_constraint where conname = 'chk_requests_birth') then
     alter table public.requests add constraint chk_requests_birth 
-      check (orphan_birth <= current_date);
+      check (orphan_birth <= current_date) not valid;
   end if;
 end $$;
