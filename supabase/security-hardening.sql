@@ -47,7 +47,13 @@ create policy "admin_all_requests" on public.requests
   using (public.is_admin())
   with check (public.is_admin());
 
--- تحديث سياسات المشاريع والتخزين
+-- تحديث سياسات المشاريع والإعدادات والتخزين
+drop policy if exists "admin_write_settings" on public.settings;
+create policy "admin_write_settings" on public.settings
+  for all to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
 drop policy if exists "admin_write_projects" on public.projects;
 create policy "admin_write_projects" on public.projects
   for all to authenticated
@@ -68,6 +74,9 @@ create table if not exists public.guardian_login_attempts (
   target_gid text not null,
   attempt_time timestamptz not null default now()
 );
+
+-- تفعيل RLS على جدول المحاولات حتى لا يستطيع أحد قراءته أو التلاعب به عبر الـ API
+alter table public.guardian_login_attempts enable row level security;
 
 create index if not exists idx_guardian_login_attempts_target 
   on public.guardian_login_attempts (target_gid, attempt_time desc);

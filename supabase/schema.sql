@@ -129,6 +129,8 @@ create table if not exists public.guardian_login_attempts (
 create index if not exists idx_guardian_login_attempts_target 
   on public.guardian_login_attempts (target_gid, attempt_time desc);
 
+alter table public.guardian_login_attempts enable row level security;
+
 drop function if exists public.fetch_guardian_requests(text, date);
 
 create or replace function public.fetch_guardian_requests(gid text, gbd date)
