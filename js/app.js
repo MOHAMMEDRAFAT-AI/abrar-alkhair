@@ -605,19 +605,23 @@ async function uploadImgs(pid,input){
 }
 
 /* ---------- إدارة المدراء (عبر Edge Function) ---------- */
-async function callAdminFn(body){
-  if(!useSB){ toast('⚠️ إدارة المدراء تتطلب تفعيل Supabase'); return null; }
+async function callAdminFn(body, silent=false){
+  if(!useSB){ if(!silent) toast('⚠️ إدارة المدراء تتطلب تفعيل Supabase'); return null; }
   const { data, error } = await sb.functions.invoke('create-admin',{body});
-  if(error){ toast('⚠️ تعذر الاتصال بالخدمة — تأكد من نشر الدالة (أنظر README)'); return null; }
-  if(data?.error){ toast('⚠️ '+({unauthorized:'غير مصرح — سجل الدخول أولاً','invalid':'بيانات غير صالحة','no-self':'لا يمكنك حذف نفسك','bad-action':'طلب خاطئ'}[data.error]||data.error)); return null; }
+  if(error){ if(!silent) toast('⚠️ تعذر الاتصال بالخدمة — تأكد من نشر الدالة (أنظر README)'); return null; }
+  if(data?.error){ if(!silent) toast('⚠️ '+({unauthorized:'غير مصرح — سجل الدخول أولاً','invalid':'بيانات غير صالحة','no-self':'لا يمكنك حذف نفسك','bad-action':'طلب خاطئ'}[data.error]||data.error)); return null; }
   return data;
 }
 async function renderAdmins(){
   const box=document.getElementById('adminList'); if(!box) return;
   if(!useSB){ box.innerHTML='<p class="text-xs font-bold" style="color:#999">تُدار حسابات المدراء عبر Supabase بعد التفعيل.</p>'; return; }
-  const d=await callAdminFn({action:'list'}); if(!d||!d.users) return;
+  const d=await callAdminFn({action:'list'}, true);
+  if(!d||!d.users){
+    box.innerHTML='<p class="text-xs font-bold text-pine-800/60 leading-relaxed">تُدار حسابات المدراء مباشرة من لوحة <b>Supabase > Authentication</b>، أو يمكنك نشر دالة السيرفر <code>create-admin</code> لإدارتهم من هنا.</p>';
+    return;
+  }
   box.innerHTML=d.users.length? d.users.map(u=>`<div class="kv"><span>${esc(u.email)}</span><b><button class="rowbtn del" onclick="delAdmin('${u.id}')">حذف 🗑</button></b></div>`).join('')
-    : '<p class="text-xs font-bold" style="color:#999">لا يوجد مدراء.</p>';
+    : '<p class="text-xs font-bold" style="color:#999">لا يوجد مدراء إضافيون.</p>';
 }
 async function addAdmin(){
   const email=document.getElementById('newAdminEmail').value.trim(), password=document.getElementById('newAdminPass').value;
