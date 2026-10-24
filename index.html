@@ -1,8 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' https://irwmxhkqoueqmmikwjye.supabase.co blob: data:; connect-src 'self' https://irwmxhkqoueqmmikwjye.supabase.co https://*.supabase.co;">
 <title>مؤسسة أبرار الخير | عطاء يصنع الحياة - غزة فلسطين</title>
 <meta name="description" content="مؤسسة أبرار الخير - فلسطين قطاع غزة - كفالة الأيتام" />
 <script src="https://cdn.tailwindcss.com"></script>
@@ -398,11 +399,11 @@ tailwind.config = {
     <div id="loginAdmin" class="hidden">
       <h3 class="text-2xl font-black text-pine-800 mb-1">🛡️ دخول المدير</h3>
       <p class="text-sm text-pine-800/60 font-bold mb-5">لوحة إدارة طلبات الكفالة</p>
-      <div class="field"><label>اسم المستخدم</label><input id="l_admin_user" placeholder="admin" dir="ltr"></div>
+      <div class="field"><label>البريد الإلكتروني</label><input id="l_admin_user" type="email" placeholder="admin@abrar.ps" dir="ltr"></div>
       <div class="field mt-3"><label>كلمة المرور</label><input id="l_admin_pass" type="password" placeholder="••••••" dir="ltr"></div>
       <p id="loginAdminErr" class="err hidden"></p>
       <button onclick="doAdminLogin()" class="btn-submit mt-4">دخول اللوحة ←</button>
-      <div class="demo-box" id="adminDemoBox">حساب تجريبي للمدير:<br><b dir="ltr">admin / admin123</b></div>
+      <p class="text-xs text-center mt-3 text-pine-800/50 font-bold">دخول المدير عبر Supabase Auth — أنشئ حسابك من لوحة Supabase</p>
     </div>
   </div>
 </div>

@@ -1,8 +1,19 @@
 /* ===== مؤسسة أبرار الخير — منطق الموقع ===== */
 const LS_KEY = 'abrar_requests_v1';
 const SESSION_KEY = 'abrar_session_v1';
-const ADMIN = { user: 'admin', pass: 'admin123' };
 const WA_NUMBER = '970597364752';
+
+/* ---------- حماية: Rate Limiting ---------- */
+const RATE_LIMIT = { maxAttempts: 5, windowMs: 60000 }; // 5 محاولات/دقيقة
+const _rlStore = {};
+function rateCheck(key){
+  const now = Date.now();
+  if(!_rlStore[key]) _rlStore[key] = [];
+  _rlStore[key] = _rlStore[key].filter(t => now - t < RATE_LIMIT.windowMs);
+  if(_rlStore[key].length >= RATE_LIMIT.maxAttempts) return false;
+  _rlStore[key].push(now);
+  return true;
+}
 
 /* ---------- Supabase (ضع بيانات مشروعك هنا — وإلا يعمل الموقع محلياً) ---------- */
 const SUPABASE_URL = 'https://irwmxhkqoueqmmikwjye.supabase.co';
@@ -131,7 +142,7 @@ async function dbDelRequest(id){
 /* ---------- أدوات ---------- */
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.add('hidden'),2800); }
 function statusLabel(s){ return s==='approved' ? '<span class="pill approved">✅ تمت الموافقة</span>' : s==='rejected' ? '<span class="pill rejected">❌ مرفوض</span>' : '<span class="pill pending">⏳ قيد المراجعة</span>'; }
-function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ---------- أكورديون الفورم ---------- */
 function toggleKafaalaForm(force){
@@ -147,6 +158,7 @@ function toggleKafaalaForm(force){
 async function submitKafaala(e){
   e.preventDefault();
   if(!submissionsOpen) return toast('⏸ استقبال الطلبات متوقف مؤقتاً — يرجى المحاولة لاحقاً'), false;
+  if(!rateCheck('submit')){ toast('⚠️ محاولات كثيرة — انتظر دقيقة قبل المحاولة مجدداً'); return false; }
   const f=e.target, fd=new FormData(f);
   const d=Object.fromEntries(fd.entries());
   // تحقق
@@ -187,6 +199,7 @@ async function doGuardianLogin(){
   const gid=document.getElementById('l_guardian_id').value.trim(), gbd=document.getElementById('l_guardian_birth').value;
   const err=document.getElementById('loginGuardianErr');
   if(!gid||!gbd){ err.textContent='❌ أدخل رقم هوية الوصي وتاريخ ميلاده'; err.classList.remove('hidden'); return; }
+  if(!rateCheck('guardian_login')){ err.textContent='⚠️ محاولات دخول كثيرة — انتظر دقيقة قبل المحاولة مجدداً'; err.classList.remove('hidden'); return; }
   let found=null;
   if(useSB){
     const { data, error } = await sb.rpc('fetch_guardian_requests',{gid, gbd});
@@ -203,7 +216,7 @@ async function doGuardianLogin(){
   }
   if(!found||!found.length){ err.textContent='❌ بيانات الدخول غير صحيحة — تأكد من رقم هوية الوصي وتاريخ ميلاده'; err.classList.remove('hidden'); return; }
   err.classList.add('hidden'); closeLogin();
-  localStorage.setItem(SESSION_KEY, JSON.stringify({type:'guardian', gid, gbd}));
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({type:'guardian', gid}));
   enterGuardian(found);
   const first=(found[0].guardian_name||'').split(' ')[0];
   toast('🌙 أهلاً '+first+' — لديك '+found.length+' أيتام مسجلين');
@@ -211,17 +224,18 @@ async function doGuardianLogin(){
 async function doAdminLogin(){
   const u=document.getElementById('l_admin_user').value.trim(), p=document.getElementById('l_admin_pass').value;
   const err=document.getElementById('loginAdminErr');
-  if(useSB){
-    const { error } = await sb.auth.signInWithPassword({email:u, password:p});
-    if(error){ err.textContent='❌ بيانات الدخول غير صحيحة'; err.classList.remove('hidden'); return; }
-    err.classList.add('hidden'); closeLogin();
-    localStorage.setItem(SESSION_KEY, JSON.stringify({type:'admin'}));
-    enterAdmin(); toast('🛡️ مرحباً أيها المدير'); return;
+  if(!rateCheck('admin_login')){ err.textContent='⚠️ محاولات دخول كثيرة — انتظر دقيقة قبل المحاولة مجدداً'; err.classList.remove('hidden'); return; }
+  if(!useSB){
+    err.textContent='⚠️ دخول المدير يتطلب تفعيل Supabase — الوضع المحلي لا يدعم مصادقة آمنة';
+    err.classList.remove('hidden'); return;
   }
-  if(u===ADMIN.user && p===ADMIN.pass){ err.classList.add('hidden'); closeLogin(); localStorage.setItem(SESSION_KEY, JSON.stringify({type:'admin'})); enterAdmin(); toast('🛡️ مرحباً أيها المدير'); }
-  else{ err.textContent='❌ اسم المستخدم أو كلمة المرور خاطئة'; err.classList.remove('hidden'); }
+  const { error } = await sb.auth.signInWithPassword({email:u, password:p});
+  if(error){ err.textContent='❌ بيانات الدخول غير صحيحة'; err.classList.remove('hidden'); return; }
+  err.classList.add('hidden'); closeLogin();
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({type:'admin'}));
+  enterAdmin(); toast('🛡️ مرحباً أيها المدير');
 }
-function logout(){ if(useSB) sb.auth.signOut(); localStorage.removeItem(SESSION_KEY); showHome(); toast('تم تسجيل الخروج'); }
+function logout(){ if(useSB) sb.auth.signOut(); sessionStorage.removeItem(SESSION_KEY); showHome(); toast('تم تسجيل الخروج'); }
 function showHome(){ ['view-admin','view-guardian'].forEach(v=>document.getElementById(v).classList.add('hidden')); document.getElementById('view-home').classList.remove('hidden'); document.getElementById('authStateLabel').textContent=''; window.scrollTo({top:0}); }
 
 /* ---------- لوحة المدير ---------- */
@@ -266,7 +280,7 @@ function adminScope(){
     sort: v('adminSort')||'pending'
   };
 }
-function adminTerm(q){ return String(q||'').replace(/[,()%\\]/g,' ').trim(); }
+function adminTerm(q){ return String(q||'').replace(/[^a-zA-Z0-9\u0600-\u06FF\s]/g, '').trim(); }
 /* يبني استعلاماً مقيّداً بكل الفلاتر الحالية (الحالة + البحث + الوصي + السكن + الجنس + الصحة + التاريخ) */
 function withScope(qy, sc, statusOverride){
   const st = statusOverride!==undefined ? statusOverride : (sc.filter!=='all'? sc.filter : null);
@@ -932,20 +946,13 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   // استعادة الجلسة
   (async ()=>{
     try{
-      const s=JSON.parse(localStorage.getItem(SESSION_KEY));
+      const s=JSON.parse(sessionStorage.getItem(SESSION_KEY));
       if(useSB){
         const { data:{session} } = await sb.auth.getSession();
         if(session && s?.type==='admin') enterAdmin();
-        else if(s?.type==='guardian' && !session){
-          const { data } = await sb.rpc('fetch_guardian_requests',{gid:s.gid, gbd:s.gbd});
-          if(Array.isArray(data)&&data.length) enterGuardian(data);
-        }
+        // جلسة الوصي لم تعد تُستعاد تلقائياً — يجب إعادة الدخول لأمان أفضل
       } else {
-        if(s?.type==='admin') enterAdmin();
-        else if(s?.type==='guardian'){
-          const all=loadRequests().filter(r=>r.guardian_id===s.gid);
-          if(all.some(r=>r.guardian_birth===s.gbd)) enterGuardian(all);
-        }
+        // الوضع المحلي: لا يدعم مصادقة آمنة — لا استعادة جلسة
       }
     }catch{}
   })();
