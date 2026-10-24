@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- مؤسسة أبرار الخير — مخطط Supabase
 -- التنفيذ: الصق هذا الملف كاملاً في Supabase Dashboard > SQL Editor > Run
 -- ============================================================
@@ -49,7 +49,32 @@ insert into public.settings (key, value)
 values ('submissions', '{"open": true}'::jsonb)
 on conflict (key) do nothing;
 
--- 4) تفعيل RLS + السياسات
+-- 4) جدول المدراء المعتمدين (حماية الصلاحيات)
+create table if not exists public.admin_users (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  role text not null default 'admin',
+  created_at timestamptz not null default now()
+);
+alter table public.admin_users enable row level security;
+
+-- دالة فحص هل المستخدم الحالي مدير معتمد
+create or replace function public.is_admin()
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.admin_users
+    where id = auth.uid()
+  );
+$$;
+grant execute on function public.is_admin() to authenticated, anon;
+
+drop policy if exists "admin_users_read" on public.admin_users;
+create policy "admin_users_read" on public.admin_users
+  for select to authenticated using (public.is_admin());
+
+-- 5) تفعيل RLS + السياسات المحكمة
 alter table public.requests enable row level security;
 alter table public.projects enable row level security;
 alter table public.settings enable row level security;
@@ -60,7 +85,9 @@ create policy "public_read_settings" on public.settings
 
 drop policy if exists "admin_write_settings" on public.settings;
 create policy "admin_write_settings" on public.settings
-  for all to authenticated using (true) with check (true);
+  for all to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 create or replace function public.submissions_open()
 returns boolean
@@ -79,7 +106,9 @@ create policy "public_insert_requests" on public.requests
 
 drop policy if exists "admin_all_requests" on public.requests;
 create policy "admin_all_requests" on public.requests
-  for all to authenticated using (true) with check (true);
+  for all to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 drop policy if exists "public_read_projects" on public.projects;
 create policy "public_read_projects" on public.projects
@@ -87,25 +116,89 @@ create policy "public_read_projects" on public.projects
 
 drop policy if exists "admin_write_projects" on public.projects;
 create policy "admin_write_projects" on public.projects
-  for all to authenticated using (true) with check (true);
+  for all to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
--- 5) دالة دخول الوصي (برقم هويته + تاريخ ميلاده) — آمنة بدون كشف الجدول
---    ترجع جميع الأيتام المسجلين تحت هذا الوصي وحالة كل يتيم على حدة.
+-- 6) جدول تعقب محاولات الدخول وحماية مصادقة الوصي (Rate Limiting)
+create table if not exists public.guardian_login_attempts (
+  id bigserial primary key,
+  target_gid text not null,
+  attempt_time timestamptz not null default now()
+);
+create index if not exists idx_guardian_login_attempts_target 
+  on public.guardian_login_attempts (target_gid, attempt_time desc);
+
 create or replace function public.fetch_guardian_requests(gid text, gbd date)
-returns setof public.requests
-language sql security definer set search_path = public
+returns table (
+  id bigint,
+  orphan_name text,
+  orphan_id text,
+  orphan_birth date,
+  orphan_gender text,
+  guardian_name text,
+  guardian_id text,
+  guardian_rel text,
+  original_address text,
+  displacement_address text,
+  phone_primary text,
+  health_status text,
+  health_note text,
+  status text,
+  created_at timestamptz
+)
+language plpgsql security definer set search_path = public
 as $$
-  select * from public.requests
-  where guardian_id = gid
-    and exists (
-      select 1 from public.requests r2
-      where r2.guardian_id = gid and r2.guardian_birth = gbd
-    )
-  order by created_at asc;
+declare
+  v_attempts int;
+  v_clean_gid text;
+begin
+  v_clean_gid := trim(gid);
+  delete from public.guardian_login_attempts where attempt_time < now() - interval '30 minutes';
+
+  select count(*) into v_attempts
+  from public.guardian_login_attempts
+  where target_gid = v_clean_gid and attempt_time >= now() - interval '15 minutes';
+
+  if v_attempts >= 5 then
+    raise exception 'تم تجاوز الحد الأقصى للمحاولات (5 محاولات). يرجى الانتظار 15 دقيقة قبل المحاولة مجدداً.';
+  end if;
+
+  if not exists (
+    select 1 from public.requests r
+    where r.guardian_id = v_clean_gid and r.guardian_birth = gbd
+  ) then
+    insert into public.guardian_login_attempts (target_gid) values (v_clean_gid);
+    return;
+  end if;
+
+  delete from public.guardian_login_attempts where target_gid = v_clean_gid;
+
+  return query
+  select 
+    r.id,
+    r.orphan_name,
+    r.orphan_id,
+    r.orphan_birth,
+    r.orphan_gender,
+    r.guardian_name,
+    r.guardian_id,
+    r.guardian_rel,
+    r.original_address,
+    r.displacement_address,
+    r.phone_primary,
+    r.health_status,
+    r.health_note,
+    r.status,
+    r.created_at
+  from public.requests r
+  where r.guardian_id = v_clean_gid
+  order by r.created_at asc;
+end;
 $$;
 grant execute on function public.fetch_guardian_requests(text, date) to anon, authenticated;
 
--- 6) bucket تخزين صور السلايدر (أنشئه من Storage > New bucket باسم site مع Public)
+-- 7) bucket تخزين صور السلايدر
 insert into storage.buckets (id, name, public)
 values ('site', 'site', true)
 on conflict (id) do update set public = true;
@@ -116,7 +209,9 @@ create policy "public_read_site" on storage.objects
 
 drop policy if exists "admin_write_site" on storage.objects;
 create policy "admin_write_site" on storage.objects
-  for all to authenticated using (bucket_id = 'site') with check (bucket_id = 'site');
+  for all to authenticated
+  using (bucket_id = 'site' and public.is_admin())
+  with check (bucket_id = 'site' and public.is_admin());
 
 -- 7) بيانات البداية: مشروع كفالة اليتيم + صوره الحالية
 insert into public.projects (id, name, description, images) values

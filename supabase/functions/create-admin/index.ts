@@ -41,23 +41,40 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // التحقق الصارم من أن المستخدم مسجل في جدول المدراء المعتمدين
+    const { data: adminRecord } = await admin
+      .from("admin_users")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!adminRecord) return json({ error: "forbidden: not an authorized admin" }, cors, 403);
+
     const { action, email, password, id } = await req.json();
 
     if (action === "list") {
-      const { data, error } = await admin.auth.admin.listUsers();
+      const { data, error } = await admin
+        .from("admin_users")
+        .select("id, email, created_at")
+        .order("created_at", { ascending: false });
       if (error) return json({ error: error.message }, cors, 400);
-      return json({ users: data.users.map((u) => ({ id: u.id, email: u.email, created: u.created_at })) }, cors);
+      return json({ users: data.map((u: any) => ({ id: u.id, email: u.email, created: u.created_at })) }, cors);
     }
     if (action === "create") {
       if (!email || !password || password.length < 6) return json({ error: "invalid" }, cors, 400);
       const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
       if (error) return json({ error: error.message }, cors, 400);
+      
+      // إضافة المدير إلى جدول المدراء المعتمدين
+      await admin.from("admin_users").insert({ id: data.user.id, email });
       return json({ ok: true, id: data.user.id }, cors);
     }
     if (action === "delete") {
       if (!id || id === user.id) return json({ error: "no-self" }, cors, 400);
       const { error } = await admin.auth.admin.deleteUser(id);
       if (error) return json({ error: error.message }, cors, 400);
+      await admin.from("admin_users").delete().eq("id", id);
       return json({ ok: true }, cors);
     }
     return json({ error: "bad-action" }, cors, 400);

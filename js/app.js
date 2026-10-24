@@ -204,9 +204,12 @@ async function doGuardianLogin(){
   if(useSB){
     const { data, error } = await sb.rpc('fetch_guardian_requests',{gid, gbd});
     if(error){
-      err.textContent=/fetch_guardian_requests|schema cache|does not exist/i.test(error.message||'')
-        ? '⚠️ فعّل دالة الدخول الجديدة: نفّذ ملف supabase/guardian-accounts.sql في Supabase SQL Editor'
-        : '⚠️ تعذر الاتصال: '+error.message;
+      const msg = error.message || '';
+      err.textContent = msg.includes('المحاولات')
+        ? '⚠️ ' + msg
+        : /fetch_guardian_requests|schema cache|does not exist/i.test(msg)
+        ? '⚠️ نفّذ ملف الأمان supabase/security-hardening.sql في Supabase SQL Editor لتفعيل الدخول المحمي'
+        : '⚠️ تعذر الاتصال: '+msg;
       err.classList.remove('hidden'); return;
     }
     found=Array.isArray(data)?data:(data?[data]:[]);
@@ -231,6 +234,15 @@ async function doAdminLogin(){
   }
   const { error } = await sb.auth.signInWithPassword({email:u, password:p});
   if(error){ err.textContent='❌ بيانات الدخول غير صحيحة'; err.classList.remove('hidden'); return; }
+
+  // التحقق من أن الحساب يملك صلاحية إدارة فعلية (is_admin)
+  const { data: isAdm, error: admErr } = await sb.rpc('is_admin');
+  if(!admErr && isAdm === false){
+    await sb.auth.signOut();
+    err.textContent='⛔ هذا الحساب ليس لديه صلاحيات مدير معتمد في النظام';
+    err.classList.remove('hidden'); return;
+  }
+
   err.classList.add('hidden'); closeLogin();
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({type:'admin'}));
   enterAdmin(); toast('🛡️ مرحباً أيها المدير');
@@ -949,7 +961,11 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       const s=JSON.parse(sessionStorage.getItem(SESSION_KEY));
       if(useSB){
         const { data:{session} } = await sb.auth.getSession();
-        if(session && s?.type==='admin') enterAdmin();
+        if(session && s?.type==='admin'){
+          const { data: isAdm } = await sb.rpc('is_admin');
+          if(isAdm !== false) enterAdmin();
+          else { await sb.auth.signOut(); sessionStorage.removeItem(SESSION_KEY); }
+        }
         // جلسة الوصي لم تعد تُستعاد تلقائياً — يجب إعادة الدخول لأمان أفضل
       } else {
         // الوضع المحلي: لا يدعم مصادقة آمنة — لا استعادة جلسة
